@@ -1,0 +1,39 @@
+name: Base da Receita (prospecção)
+
+on:
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: 'diagnostico | teste (sem gravar) | gravar'
+        required: true
+        default: 'diagnostico'
+  schedule:
+    - cron: '17 6 15 * *'   # todo dia 15, 03:17 em Brasília
+
+jobs:
+  receita:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Diagnóstico
+        if: github.event_name == 'workflow_dispatch' && inputs.modo == 'diagnostico'
+        run: python scripts/receita/diagnostico.py
+      - name: Processar a base
+        if: github.event_name == 'schedule' || inputs.modo != 'diagnostico'
+        env:
+          MODO: ${{ github.event_name == 'schedule' && 'gravar' || inputs.modo }}
+          SUPABASE_URL: https://pizwcdcxpdulyntwbdex.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/receita/ingestao.py
+      - name: Guardar resumo
+        if: always() && (github.event_name == 'schedule' || inputs.modo != 'diagnostico')
+        uses: actions/upload-artifact@v4
+        with:
+          name: resumo-receita
+          path: saida/
+          retention-days: 14
