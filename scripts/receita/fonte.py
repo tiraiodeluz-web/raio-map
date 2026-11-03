@@ -64,12 +64,42 @@ def url_arquivo(origem, mes, nome):
     return (DAV if origem == 'receita' else ESPELHO) + f'{mes}/{nome}'
 
 
-def baixar(origem, mes, nome, destino):
-    """Baixa para disco em blocos (os maiores arquivos têm centenas de MB)."""
-    with urllib.request.urlopen(_req(url_arquivo(origem, mes, nome)), timeout=600) as r, open(destino, 'wb') as f:
-        while True:
-            b = r.read(1 << 20)
-            if not b:
-                break
-            f.write(b)
-    return destino
+def baixar(origem, mes, nome, destino, tamanho=0, tentativas=8):
+    """Baixa para disco em blocos, retomando de onde parou se a conexão cair (o servidor da Receita é lento)."""
+    import os, time
+    for t in range(tentativas):
+        feito = os.path.getsize(destino) if os.path.exists(destino) else 0
+        if tamanho and feito >= tamanho:
+            return destino
+        h = {'Range': f'bytes={feito}-'} if feito else {}
+        try:
+            with urllib.request.urlopen(_req(url_arquivo(origem, mes, nome), headers=h), timeout=120) as r, open(destino, 'ab' if feito else 'wb') as f:
+                if feito and r.status != 206:  # servidor ignorou o Range: recomeça
+                    f.seek(0); f.truncate()
+                while True:
+                    b = r.read(1 << 20)
+                    if not b:
+                        break
+                    f.write(b)
+            if not tamanho or os.path.getsize(destino) >= tamanho:
+                return destino
+        except Exception as e:  # noqa: BLE001
+            print(f'  {nome}: conexão caiu ({e!r}), retomando ({t + 1}/{tentativas})', flush=True)
+            time.sleep(5 * (t + 1))
+    raise RuntimeError(f'Não foi possível baixar {nome}')
+
+
+def baixar_varios(origem, mes, arquivos, pasta, paralelos=4):
+    """Baixa vários arquivos ao mesmo tempo. arquivos = [(nome, tamanho)]. Devolve {nome: caminho}."""
+    import os, time
+    from concurrent.futures import ThreadPoolExecutor
+    t0 = time.time(); total = sum(t for _, t in arquivos)
+    def um(item):
+        nome, tam = item
+        caminho = baixar(origem, mes, nome, os.path.join(pasta, nome), tam)
+        print(f'  baixado {nome} ({tam / 1e6:.0f} MB) · {time.time() - t0:.0f}s', flush=True)
+        return nome, caminho
+    with ThreadPoolExecutor(paralelos) as ex:
+        out = dict(ex.map(um, sorted(arquivos, key=lambda x: -x[1])))
+    print(f'Download: {total / 1e9:.1f} GB em {(time.time() - t0) / 60:.0f} min', flush=True)
+    return out

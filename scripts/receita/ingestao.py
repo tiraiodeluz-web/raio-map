@@ -14,7 +14,7 @@ import csv, gzip, io, json, os, re, sys, time, unicodedata, urllib.error, urllib
 from collections import Counter
 
 sys.path.insert(0, os.path.dirname(__file__))
-from fonte import baixar, mes_mais_recente  # noqa: E402
+from fonte import baixar, baixar_varios, mes_mais_recente  # noqa: E402
 
 csv.field_size_limit(10_000_000)
 SAIDA = 'saida'
@@ -203,6 +203,8 @@ def main():
     nomes = {n for n, _, _ in arquivos}
     print(f'Fonte: {origem} · mês {mes} · {len(arquivos)} arquivos', flush=True)
     ibge, rfb, apelidos = carregar_municipios(origem, mes)
+    alvo = [(n, t) for n, t, _ in arquivos if re.fullmatch(rf'(Estabelecimentos|Empresas)[0-{NARQ - 1}]\.zip', n)]
+    locais = baixar_varios(origem, mes, alvo, TMP, int(os.environ.get('PARALELOS', '4')))
 
     # Passo 1: estabelecimentos ativos que podem ser do segmento
     cand = {}  # cnpj -> dict
@@ -211,7 +213,7 @@ def main():
         nome = f'Estabelecimentos{i}.zip'
         if nome not in nomes:
             continue
-        p = baixar(origem, mes, nome, os.path.join(TMP, nome))
+        p = locais[nome]
         for r in ler_zip(p):
             lidos += 1
             if len(r) < 28 or r[5] != '02':
@@ -239,7 +241,7 @@ def main():
         nome = f'Empresas{i}.zip'
         if nome not in nomes:
             continue
-        p = baixar(origem, mes, nome, os.path.join(TMP, nome))
+        p = locais[nome]
         for r in ler_zip(p):
             if r and r[0] in basicos:
                 razao[r[0]] = (sem_cpf(r[1]), r[2], PORTE.get(r[5]))
