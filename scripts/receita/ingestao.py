@@ -211,7 +211,12 @@ def classificar_ia(linhas):
             except urllib.error.HTTPError as e:
                 if e.code in (429, 500, 529) and tentativa < 4:
                     time.sleep(10 * (tentativa + 1)); continue
-                print('  IA: erro', e.code, e.read()[:300]); break
+                corpo_erro = e.read()[:300]
+                print('  IA: erro', e.code, corpo_erro)
+                if e.code in (400, 401, 403) and (b'credit' in corpo_erro or b'authentication' in corpo_erro or b'permission' in corpo_erro):
+                    print('  IA desligada nesta execução: confira a chave e o crédito em console.anthropic.com', flush=True)
+                    return out
+                break
             except Exception as e:  # noqa: BLE001
                 print('  IA: resposta inválida no lote', i, repr(e)[:200]); break
         print(f'  IA avaliou {min(i + 40, len(linhas))}/{len(linhas)}', flush=True)
