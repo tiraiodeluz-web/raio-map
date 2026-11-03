@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useSessao } from '../context/Sessao'
 import { supabase } from '../lib/supabase'
 import { PAPEL_ROTULO } from '../lib/types'
+import Marca from './Marca'
 import { IcClientes, IcConfig, IcMapa, IcPainel } from './Icones'
 
 const ITENS = [
@@ -22,11 +23,11 @@ export default function Layout() {
     <div className="app">
       <div className="mobile-bar">
         <button type="button" onClick={() => setAberto(true)} aria-label="Abrir menu">☰ Menu</button>
-        <b style={{ letterSpacing: '.06em' }}>RAIO MAP</b>
+        <Marca compacta />
         <span className="small" style={{ opacity: 0.8 }}>{org?.nome}</span>
       </div>
       <aside className={'sidebar' + (aberto ? ' open' : '')} onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setAberto(false) }}>
-        <a className="brand" href="/"><img src="/logo.svg" alt="" /><b>RAIO MAP</b></a>
+        <a className="brand" href="/"><Marca /></a>
         {orgs.length > 1 ? (
           <div className="org-switch">
             <select aria-label="Empresa" value={org?.id} onChange={(e) => trocarOrg(e.target.value)}>

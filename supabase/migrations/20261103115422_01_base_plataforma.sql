@@ -1,4 +1,4 @@
--- RAIO MAP · 01_base_plataforma
+-- Clyvo Map · 01_base_plataforma
 create extension if not exists postgis with schema extensions;
 create extension if not exists pg_trgm with schema extensions;
 create extension if not exists unaccent with schema extensions;

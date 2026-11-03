@@ -1,4 +1,4 @@
--- RAIO MAP · 06_funcoes_sem_acesso_publico
+-- Clyvo Map · 06_funcoes_sem_acesso_publico
 revoke execute on all functions in schema public from public, anon;
 grant execute on function
   public.eh_membro(uuid), public.papel_em(uuid), public.pode_editar(uuid), public.eh_admin_org(uuid), public.eh_admin_plataforma(),

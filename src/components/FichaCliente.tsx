@@ -137,7 +137,7 @@ export default function FichaCliente({ id, onClose, onChange }: { id: string; on
                     </li>
                   ))}
                 </ul>
-              ) : <p className="small muted">Nenhum contato registrado no RAIO MAP.</p>}
+              ) : <p className="small muted">Nenhum contato registrado no Clyvo Map.</p>}
             </div>
           </div>
         </>)}

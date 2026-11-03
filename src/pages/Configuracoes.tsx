@@ -114,7 +114,7 @@ function Membros() {
               </label>
               <button className="btn btn-primary" type="submit">Convidar</button>
             </form>
-            <p className="small muted">A pessoa cria a conta no RAIO MAP com esse e-mail e entra na empresa automaticamente. Admin gerencia membros; vendedor edita clientes; leitor só consulta.</p>
+            <p className="small muted">A pessoa cria a conta no Clyvo Map com esse e-mail e entra na empresa automaticamente. Admin gerencia membros; vendedor edita clientes; leitor só consulta.</p>
             {convites.length > 0 && (
               <table className="t">
                 <thead><tr><th>Convite pendente</th><th>Papel</th><th>Enviado</th><th /></tr></thead>
@@ -157,7 +157,7 @@ function PlanoUso() {
           </tbody>
         </table>
       </div>
-      <div className="panel-b small muted">Para mudar de plano, fale com o suporte do RAIO MAP.</div>
+      <div className="panel-b small muted">Para mudar de plano, fale com o suporte do Clyvo Map.</div>
     </section>
   )
 }

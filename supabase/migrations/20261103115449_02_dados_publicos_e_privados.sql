@@ -1,4 +1,4 @@
--- RAIO MAP · 02_dados_publicos_e_privados
+-- Clyvo Map · 02_dados_publicos_e_privados
 -- ===== Camada pública: estabelecimentos (gravada só pela ingestão, com service role) =====
 create table public.estabelecimentos (
   id bigint generated always as identity primary key,

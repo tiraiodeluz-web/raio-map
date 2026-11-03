@@ -29,7 +29,7 @@ export default function NovaEmpresa({ primeira = false }: { primeira?: boolean }
             ? 'Sua conta ainda não participa de nenhuma empresa. Crie a sua para começar, ou peça a um admin para convidar ' + (session?.user.email || 'seu e-mail') + '.'
             : 'Você será o dono da nova empresa. Os dados dela ficam separados das outras.'}
         </p>
-        <label className="field"><span>Nome da empresa</span><input id="org-nome" className="input" required minLength={2} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Raio de Luz Artigos Religiosos" /></label>
+        <label className="field"><span>Nome da empresa</span><input id="org-nome" className="input" required minLength={2} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Casa Sacra Distribuidora" /></label>
         <label className="field"><span>CNPJ (opcional)</span><input id="org-cnpj" className="input" value={cnpj} onChange={(e) => setCnpj(e.target.value)} inputMode="numeric" /></label>
         {erro && <div className="alert alert-err">{erro}</div>}
         <button className="btn btn-primary" type="submit" disabled={enviando}>Criar empresa</button>

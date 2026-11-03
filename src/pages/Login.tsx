@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { msgErro, supabase } from '../lib/supabase'
+import Marca from '../components/Marca'
 
 type Modo = 'entrar' | 'criar' | 'esqueci'
 
-/** Fundo do login: os municípios do Brasil como pontos, com um raio dourado varrendo. */
+/** Fundo do login: os municípios do Brasil como pontos, com um feixe azul varrendo o mapa. */
 function ArteMapa() {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
@@ -28,7 +29,7 @@ function ArteMapa() {
         const x = ox + (lo + 74) * s, y = oy + (5.3 - la) * s
         let a = Math.atan2(y - cy, x - cx) - ang; a = Math.atan2(Math.sin(a), Math.cos(a))
         const luz = Math.max(0, 1 - Math.abs(a) / 0.35)
-        ctx.fillStyle = luz > 0.02 ? `rgba(227,176,75,${0.25 + luz * 0.7})` : 'rgba(150,170,210,0.28)'
+        ctx.fillStyle = luz > 0.02 ? `rgba(58,182,255,${0.25 + luz * 0.75})` : 'rgba(120,150,210,0.22)'
         ctx.fillRect(x, y, 1.6, 1.6)
       }
       if (!reduz) raf = requestAnimationFrame(desenhar)
@@ -69,10 +70,7 @@ export default function Login() {
     <div className="auth">
       <section className="auth-art">
         <ArteMapa />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/logo.svg" alt="" width={34} height={34} />
-          <b style={{ color: '#fff', letterSpacing: '.08em', fontSize: 17 }}>RAIO MAP</b>
-        </div>
+        <Marca />
         <div>
           <h1>Onde estão seus clientes e onde estão os próximos.</h1>
           <p>Mapa comercial e expansão territorial para distribuidoras, fabricantes e atacadistas de artigos religiosos.</p>

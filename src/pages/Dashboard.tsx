@@ -59,7 +59,7 @@ export default function Dashboard() {
       <div className="page-head"><div><h1>{org?.nome}</h1><p>Comece importando sua carteira de clientes.</p></div></div>
       <div className="panel empty">
         <h2>Nenhum cliente cadastrado ainda</h2>
-        <p>Importe a planilha exportada do seu ERP. O RAIO MAP localiza cada cliente pela cidade e pelo CEP.</p>
+        <p>Importe a planilha exportada do seu ERP. O Clyvo Map localiza cada cliente pela cidade e pelo CEP.</p>
         <Link className="btn btn-primary" to="/clientes/importar">Importar clientes</Link>
       </div>
     </div>
@@ -82,11 +82,11 @@ export default function Dashboard() {
       <div className="grid-2">
         <section className="panel">
           <div className="panel-h"><h2>Clientes por estado</h2><span className="small muted">{porUf.length} estados</span></div>
-          <div className="panel-b"><BarrasH itens={porUf} max={14} /></div>
+          <div className="panel-b"><BarrasH itens={porUf} max={14} cor="var(--brand)" /></div>
         </section>
         <section className="panel">
           <div className="panel-h"><h2>Cidades com mais clientes</h2></div>
-          <div className="panel-b"><BarrasH itens={topCidades} max={10} cor="var(--cat-ativo)" /></div>
+          <div className="panel-b"><BarrasH itens={topCidades} max={10} cor="var(--brand-cyan)" /></div>
         </section>
       </div>
 

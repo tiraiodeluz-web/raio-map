@@ -37,7 +37,7 @@ export function ColunasMes({ serie }: { serie: { mes: string; n: number }[] }) {
         return (
           <g key={s.mes}>
             <title>{`${MES[+m - 1]}/${a}: ${fmt(s.n)}`}</title>
-            <rect x={pl + i * bw + 2} y={y(s.n)} width={Math.max(2, bw - 4)} height={h - pb - y(s.n)} rx={2} fill={ult ? 'var(--gold)' : 'var(--navy-600)'} />
+            <rect x={pl + i * bw + 2} y={y(s.n)} width={Math.max(2, bw - 4)} height={h - pb - y(s.n)} rx={2} fill={ult ? 'var(--brand-cyan)' : 'var(--brand)'} />
             {(i % 3 === 0 || ult) && <text x={pl + i * bw + bw / 2} y={h - 8} textAnchor="middle">{MES[+m - 1]}{m === '01' || i === 0 ? '/' + a.slice(2) : ''}</text>}
           </g>
         )

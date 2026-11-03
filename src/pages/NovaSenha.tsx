@@ -15,7 +15,7 @@ export default function NovaSenha() {
     <div className="center-fill" style={{ padding: 24 }}>
       <form onSubmit={salvar} className="panel panel-b" style={{ width: 'min(380px,100%)', display: 'grid', gap: 14 }}>
         <h2>Criar nova senha</h2>
-        {ok ? (<><div className="alert alert-ok">Senha alterada.</div><a className="btn btn-primary" href="/">Ir para o RAIO MAP</a></>) : (<>
+        {ok ? (<><div className="alert alert-ok">Senha alterada.</div><a className="btn btn-primary" href="/">Ir para o Clyvo Map</a></>) : (<>
           <label className="field"><span>Nova senha</span><input id="nova" className="input" type="password" autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} /></label>
           {erro && <div className="alert alert-err">{erro}</div>}
           <button className="btn btn-primary" type="submit">Salvar senha</button>

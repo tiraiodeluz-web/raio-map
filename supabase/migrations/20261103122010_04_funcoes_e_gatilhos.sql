@@ -1,4 +1,4 @@
--- RAIO MAP · 04_funcoes_e_gatilhos
+-- Clyvo Map · 04_funcoes_e_gatilhos
 create or replace function public.tocar_atualizado_em() returns trigger
 language plpgsql set search_path = '' as $$
 begin new.atualizado_em := now(); return new; end $$;

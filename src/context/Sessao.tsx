@@ -27,7 +27,7 @@ export const useSessao = () => {
   return c
 }
 
-const CHAVE_ORG = 'raiomap.org'
+const CHAVE_ORG = 'clyvomap.org'
 
 export function SessaoProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)

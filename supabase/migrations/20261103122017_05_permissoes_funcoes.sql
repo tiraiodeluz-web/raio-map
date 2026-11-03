@@ -1,4 +1,4 @@
--- RAIO MAP · 05_permissoes_funcoes
+-- Clyvo Map · 05_permissoes_funcoes
 revoke execute on all functions in schema public from anon;
 revoke execute on function public.auditar(uuid, text, text, text, jsonb) from public, authenticated;
 revoke execute on function public.gatilho_auditoria() from public, authenticated;

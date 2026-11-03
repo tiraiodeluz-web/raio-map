@@ -1,4 +1,4 @@
--- RAIO MAP · 03_rls_politicas
+-- Clyvo Map · 03_rls_politicas
 -- Liga RLS em todas as tabelas
 alter table public.municipios enable row level security;
 alter table public.planos enable row level security;

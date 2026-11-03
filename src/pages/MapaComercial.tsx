@@ -99,7 +99,7 @@ export default function MapaComercial() {
     const lyr = L.geoJSON(geo, {
       style: (f) => {
         const s = f?.properties?.sigla as string, n = porUf[s] || 0
-        return { fillColor: n ? mix('ffffff', '2a4170', 0.05 + 0.3 * Math.sqrt(n / max)) : '#ffffff', fillOpacity: 1, color: s === uf ? '#c9973a' : '#cfd5e1', weight: s === uf ? 2.2 : 0.8 }
+        return { fillColor: n ? mix('ffffff', '2f7bff', 0.04 + 0.26 * Math.sqrt(n / max)) : '#ffffff', fillOpacity: 1, color: s === uf ? '#3AB6FF' : '#cfd5e1', weight: s === uf ? 2.2 : 0.8 }
       },
       onEachFeature: (f, l) => {
         const s = f.properties.sigla as string
@@ -124,7 +124,7 @@ export default function MapaComercial() {
         const cor = p.a ? COR.ativo : COR.inativo
         const d = Math.round(Math.min(54, 14 + Math.sqrt(p.n) * 4.2))
         const sel = painel?.tipo === 'cidade' && p.key === painel.key
-        const icon = L.divIcon({ className: '', iconSize: [d, d], html: `<div class="cluster-icon" style="width:${d}px;height:${d}px;background:${cor};${sel ? 'box-shadow:0 0 0 3px #c9973a;' : ''}${p.i && p.a ? `background:conic-gradient(${COR.ativo} 0 ${(p.a / p.n) * 360}deg, ${COR.inativo} 0)` : ''}">${p.n > 1 ? p.n : ''}</div>` })
+        const icon = L.divIcon({ className: '', iconSize: [d, d], html: `<div class="cluster-icon" style="width:${d}px;height:${d}px;background:${cor};${sel ? 'box-shadow:0 0 0 3px #3AB6FF;' : ''}${p.i && p.a ? `background:conic-gradient(${COR.ativo} 0 ${(p.a / p.n) * 360}deg, ${COR.inativo} 0)` : ''}">${p.n > 1 ? p.n : ''}</div>` })
         const m = L.marker([lat, lng], { icon, keyboard: true, riseOnHover: true })
         if (p.cluster) {
           m.bindTooltip(`${fmt(p.n)} clientes nesta região. Clique para aproximar.`, { className: 'tip', direction: 'top', offset: [0, -d / 2] })
@@ -147,7 +147,7 @@ export default function MapaComercial() {
     const map = mapRef.current, lyr = raioLayer.current; if (!map || !lyr) return
     lyr.clearLayers()
     if (!aqui) return
-    const circ = L.circle([aqui.lat, aqui.lng], { radius: raio * 1000, color: '#c9973a', weight: 1.6, dashArray: '6 6', fillColor: '#c9973a', fillOpacity: 0.06, interactive: false }).addTo(lyr)
+    const circ = L.circle([aqui.lat, aqui.lng], { radius: raio * 1000, color: '#3AB6FF', weight: 1.6, dashArray: '6 6', fillColor: '#3AB6FF', fillOpacity: 0.06, interactive: false }).addTo(lyr)
     L.marker([aqui.lat, aqui.lng], { icon: L.divIcon({ className: '', html: '<div class="you-pin"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }), zIndexOffset: 1000 })
       .bindTooltip(`CEP ${fmtCep(aqui.cep)} · ${aqui.cidade} – ${aqui.uf}`, { className: 'tip', direction: 'top', offset: [0, -10] }).addTo(lyr)
     map.flyToBounds(circ.getBounds(), { padding: [40, 40], duration: 0.6 })
@@ -330,7 +330,7 @@ export default function MapaComercial() {
         <div className="float legend" aria-hidden="true">
           <div className="row"><span className="dot" style={{ background: COR.ativo }} />Cliente ativo</div>
           <div className="row"><span className="dot" style={{ background: COR.inativo }} />Cliente inativo</div>
-          <div className="row"><span className="dot" style={{ background: '#c9973a' }} />Seu CEP e o raio de busca</div>
+          <div className="row"><span className="dot" style={{ background: '#3AB6FF' }} />Seu CEP e o raio de busca</div>
           <div className="row" style={{ color: 'var(--faint)' }}>Número no círculo = clientes agrupados{zoom < 6 ? '. Aproxime para separar.' : ''}</div>
         </div>
       )}
