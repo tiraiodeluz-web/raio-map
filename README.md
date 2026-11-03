@@ -41,7 +41,7 @@ Nunca coloque a chave `service_role` neste repositório nem no app: ele roda no 
 3. Variáveis de ambiente: não são necessárias. O endereço e a chave pública do Supabase já estão em `src/lib/supabase.ts`; use as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` só se quiser apontar para outro projeto.
 4. Depois do primeiro deploy, no Supabase › Authentication › URL Configuration, coloque o endereço do site em **Site URL** e em **Redirect URLs** (com `/**` no fim).
 
-O arquivo `public/_redirects` faz as rotas do app funcionarem ao recarregar a página.
+No Cloudflare Workers, o `wrangler.jsonc` publica a pasta `dist` e faz as rotas do app (ex.: `/mapa`) funcionarem ao recarregar a página. Build command: `npm run build`; deploy command: `npx wrangler deploy`.
 
 ## Dados de referência
 

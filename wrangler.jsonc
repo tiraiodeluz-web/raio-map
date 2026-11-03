@@ -1,0 +1,11 @@
+{
+  // Publicação no Cloudflare Workers (arquivos estáticos do Vite).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "raio-map",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    // rotas do React (ex.: /mapa) devolvem o index.html
+    "not_found_handling": "single-page-application"
+  }
+}
