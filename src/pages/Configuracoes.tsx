@@ -4,8 +4,9 @@ import { useSessao } from '../context/Sessao'
 import { msgErro, supabase } from '../lib/supabase'
 import { PAPEL_ROTULO, type Membro, type Papel, type Plano } from '../lib/types'
 import { dataBR, dataHoraBR, fmt } from '../lib/format'
+import { chamarBatePapo } from '../lib/chat'
 
-type Aba = 'empresa' | 'membros' | 'plano' | 'atividade'
+type Aba = 'empresa' | 'membros' | 'plano' | 'bate_papo' | 'atividade'
 
 const ACOES: Record<string, string> = {
   criar: 'Criou', insert: 'Adicionou', update: 'Alterou', delete: 'Removeu', convidar: 'Convidou', exportar: 'Exportou clientes',
@@ -193,9 +194,65 @@ function Atividade() {
   )
 }
 
+
+function BatePapo() {
+  const { org, ehAdmin, toast } = useSessao()
+  const [url, setUrl] = useState('')
+  const [segredo, setSegredo] = useState<string | null>(null)
+  const [existe, setExiste] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+  const [ocupado, setOcupado] = useState(false)
+  async function carregar() {
+    if (!org || !ehAdmin) return
+    const { data } = await supabase.from('integracoes').select('webhook_url,segredo').eq('org_id', org.id).eq('tipo', 'bate_papo').maybeSingle()
+    setExiste(!!data); setUrl(data?.webhook_url || ''); setSegredo(data?.segredo || null)
+  }
+  useEffect(() => { carregar() }, [org, ehAdmin]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (!ehAdmin) return <div className="alert alert-warn">Só dono ou admin configura o bate-papo.</div>
+  async function salvar(e: FormEvent) {
+    e.preventDefault(); setErro(null)
+    const u = url.trim()
+    if (!/^https:\/\/\S+$/.test(u)) return setErro('Cole o endereço completo do webhook, começando com https://')
+    const { error } = await supabase.from('integracoes').upsert({ org_id: org!.id, tipo: 'bate_papo', webhook_url: u, atualizado_em: new Date().toISOString() }, { onConflict: 'org_id,tipo' })
+    if (error) return setErro(msgErro(error))
+    toast('Bate-papo conectado'); carregar()
+  }
+  async function testar() {
+    setErro(null); setOcupado(true)
+    try { await chamarBatePapo(org!.id, 'testar'); toast('Teste enviado. Veja a execução no n8n.') } catch (e) { setErro((e as Error).message) } finally { setOcupado(false) }
+  }
+  async function remover() {
+    if (!window.confirm('Desconectar o bate-papo desta empresa?')) return
+    const { error } = await supabase.from('integracoes').delete().eq('org_id', org!.id).eq('tipo', 'bate_papo')
+    if (error) return setErro(msgErro(error)); toast('Bate-papo desconectado'); carregar()
+  }
+  return (
+    <form onSubmit={salvar} className="panel panel-b" style={{ display: 'grid', gap: 14, maxWidth: 640 }}>
+      <div>
+        <h2>Bate-papo (WhatsApp)</h2>
+        <p className="small muted">Em Meus prospects, o botão Conectar bate-papo envia os prospects escolhidos para o seu fluxo no n8n, que faz a abordagem pelo WhatsApp.</p>
+      </div>
+      <label className="field"><span>Endereço do webhook (n8n)</span>
+        <input id="bp-url" className="input" type="url" placeholder="https://seu-n8n/webhook/..." value={url} onChange={(e) => setUrl(e.target.value)} />
+      </label>
+      <p className="small muted">No n8n, abra o nó <b>Webhook</b> do fluxo, método POST, e copie a <b>Production URL</b>. O fluxo precisa estar ativo.</p>
+      {segredo && (
+        <label className="field"><span>Chave de segurança (enviada no cabeçalho X-Clyvo-Token)</span>
+          <input className="input mono" readOnly value={segredo} onFocus={(e) => e.currentTarget.select()} />
+        </label>
+      )}
+      {erro && <div className="alert alert-err">{erro}</div>}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button className="btn btn-primary" type="submit">Salvar</button>
+        {existe && <button className="btn" type="button" onClick={testar} disabled={ocupado}>{ocupado ? 'Enviando…' : 'Enviar teste'}</button>}
+        {existe && <button className="btn btn-danger" type="button" onClick={remover}>Desconectar</button>}
+      </div>
+    </form>
+  )
+}
 export default function Configuracoes() {
   const [aba, setAba] = useState<Aba>('empresa')
-  const ABAS: [Aba, string][] = [['empresa', 'Empresa'], ['membros', 'Membros'], ['plano', 'Plano e uso'], ['atividade', 'Atividades']]
+  const ABAS: [Aba, string][] = [['empresa', 'Empresa'], ['membros', 'Membros'], ['plano', 'Plano e uso'], ['bate_papo', 'Bate-papo'], ['atividade', 'Atividades']]
   return (
     <div className="page" style={{ maxWidth: 980 }}>
       <div className="page-head"><div><h1>Configurações</h1><p>Empresa, pessoas com acesso, limites do plano e registro de atividades.</p></div></div>
@@ -205,6 +262,7 @@ export default function Configuracoes() {
       {aba === 'empresa' && <Empresa />}
       {aba === 'membros' && <Membros />}
       {aba === 'plano' && <PlanoUso />}
+      {aba === 'bate_papo' && <BatePapo />}
       {aba === 'atividade' && <Atividade />}
     </div>
   )

@@ -3,6 +3,7 @@ import { useSessao } from '../context/Sessao'
 import { msgErro, supabase } from '../lib/supabase'
 import { CANAIS, type Interacao } from '../lib/types'
 import { dataBR, dataHoraBR, formatarDoc } from '../lib/format'
+import { chamarBatePapo, textoResultado } from '../lib/chat'
 import { SITUACOES, SITUACAO_ROTULO, useSegmento, type Situacao } from '../lib/prospeccao'
 
 interface Prospect {
@@ -22,6 +23,8 @@ export default function FichaProspect({ id, onClose, onChange }: { id: string; o
   const [texto, setTexto] = useState('')
   const [canal, setCanal] = useState('telefone')
   const [novaSit, setNovaSit] = useState<string>('')
+  const [chatOk, setChatOk] = useState(false)
+  const [enviando, setEnviando] = useState(false)
 
   async function carregar() {
     const [{ data, error }, h] = await Promise.all([
@@ -50,6 +53,14 @@ export default function FichaProspect({ id, onClose, onChange }: { id: string; o
     const { error } = await supabase.from('interacoes').insert({ org_id: org.id, prospect_id: p.id, canal, texto: texto.trim(), situacao_nova: novaSit || null, user_id: uid })
     if (error) return setErro(msgErro(error))
     setTexto(''); setNovaSit(''); toast('Abordagem registrada'); carregar(); onChange?.()
+  }
+
+  useEffect(() => { if (org) supabase.rpc('bate_papo_conectado', { p_org: org.id }).then(({ data }) => setChatOk(!!data)) }, [org])
+  async function enviarChat() {
+    if (!p || !org) return
+    setEnviando(true); setErro(null)
+    try { toast(textoResultado(await chamarBatePapo(org.id, 'enviar', [p.id]))); carregar(); onChange?.() }
+    catch (e) { setErro((e as Error).message) } finally { setEnviando(false) }
   }
 
   async function remover() {
@@ -91,6 +102,7 @@ export default function FichaProspect({ id, onClose, onChange }: { id: string; o
             </dl>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <a className="btn" target="_blank" rel="noopener" href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([p.nome, p.logradouro, p.cidade, p.uf].filter(Boolean).join(', '))}>Abrir no Google Maps</a>
+              {podeEditar && chatOk && <button className="btn btn-primary" type="button" onClick={enviarChat} disabled={enviando}>{enviando ? 'Enviando…' : 'Enviar ao bate-papo'}</button>}
               {ehAdmin && <button className="btn btn-danger" type="button" onClick={remover}>Remover da lista</button>}
             </div>
 

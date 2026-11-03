@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useSessao } from '../context/Sessao'
 import { msgErro, supabase } from '../lib/supabase'
 import { fmt, dataBR } from '../lib/format'
@@ -8,6 +8,7 @@ import { CONFIANCA_ROTULO, SITUACOES, SITUACAO_ROTULO, useSegmento, type LinhaBu
 import FichaEstabelecimento from '../components/FichaEstabelecimento'
 import FichaProspect from '../components/FichaProspect'
 import { baixarCsv } from '../lib/csv'
+import { chamarBatePapo, textoResultado } from '../lib/chat'
 
 const POR_PAGINA = 50
 
@@ -127,11 +128,16 @@ function BaseNacional({ abrir }: { abrir: (id: number) => void }) {
   )
 }
 
-interface LinhaProspect { id: string; nome: string; cidade: string | null; uf: string | null; situacao: Situacao; telefone: string | null; categoria: string | null; nota: number | null; atualizado_em: string; fonte: string }
+interface LinhaProspect { id: string; nome: string; cidade: string | null; uf: string | null; situacao: Situacao; telefone: string | null; categoria: string | null; nota: number | null; atualizado_em: string; fonte: string; chat_enviado_em: string | null }
 
 function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao: number }) {
-  const { org, toast } = useSessao()
+  const { org, toast, podeEditar, ehAdmin } = useSessao()
+  const navigate = useNavigate()
   const { rotulo } = useSegmento()
+  const [conectado, setConectado] = useState<boolean | null>(null)
+  const [escolhidos, setEscolhidos] = useState<Set<string>>(new Set())
+  const [enviando, setEnviando] = useState(false)
+  const [recarga, setRecarga] = useState(0)
   const [exportando, setExportando] = useState(false)
   const [sit, setSit] = useState('')
   const [q, setQ] = useState('')
@@ -143,16 +149,35 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
   useEffect(() => setPag(0), [sit, q])
   useEffect(() => {
     if (!org) return
+    supabase.rpc('bate_papo_conectado', { p_org: org.id }).then(({ data }) => setConectado(!!data))
+  }, [org])
+  useEffect(() => {
+    if (!org) return
     supabase.rpc('resumo_org', { p_org: org.id }).then(({ data }) => setContagem((data as { prospects_por_situacao: Record<string, number> })?.prospects_por_situacao || {}))
   }, [org, versao])
   useEffect(() => {
     if (!org) return
-    let qb = supabase.from('prospects').select('id,nome,cidade,uf,situacao,telefone,categoria,nota,atualizado_em,fonte', { count: 'exact' }).eq('org_id', org.id)
+    let qb = supabase.from('prospects').select('id,nome,cidade,uf,situacao,telefone,categoria,nota,atualizado_em,fonte,chat_enviado_em', { count: 'exact' }).eq('org_id', org.id)
     if (sit) qb = qb.eq('situacao', sit)
     const t = q.trim().replace(/[,()%]/g, ' ').trim()
     if (t) qb = qb.or(`nome.ilike.%${t}%,cidade.ilike.%${t}%`)
     qb.order('atualizado_em', { ascending: false }).range(pag * POR_PAGINA, pag * POR_PAGINA + POR_PAGINA - 1).then(({ data, count }) => { setLinhas((data as LinhaProspect[]) || []); setTotal(count || 0) })
-  }, [org, sit, q, pag, versao])
+  }, [org, sit, q, pag, versao, recarga])
+
+  async function conectarBatePapo() {
+    if (!org) return
+    if (!conectado) {
+      if (ehAdmin) { toast('Falta informar o endereço do n8n.'); return navigate('/configuracoes') }
+      return toast('O bate-papo ainda não foi conectado. Peça a um admin em Configurações > Bate-papo.')
+    }
+    const ids = [...escolhidos]
+    if (!ids.length) return toast('Marque os prospects que quer enviar.')
+    if (!window.confirm(`Enviar ${ids.length} prospect${ids.length > 1 ? 's' : ''} ao bate-papo para abordagem pelo WhatsApp?`)) return
+    setEnviando(true)
+    try { const r = await chamarBatePapo(org.id, 'enviar', ids); toast(textoResultado(r)); setEscolhidos(new Set()); setRecarga((n) => n + 1) }
+    catch (e) { toast((e as Error).message) } finally { setEnviando(false) }
+  }
+  const alternar = (id: string) => setEscolhidos((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
 
   async function exportar() {
     if (!org) return
@@ -188,18 +213,20 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
       <div className="filters">
         <label className="field grow" style={{ maxWidth: 420 }}><span>Buscar</span><input id="mp-q" className="input" type="search" placeholder="Nome ou cidade" value={q} onChange={(e) => setQ(e.target.value)} /></label>
         <button className="btn" type="button" onClick={exportar} disabled={exportando || !total}>{exportando ? 'Exportando…' : 'Exportar planilha'}</button>
-        <span className="small muted" style={{ paddingBottom: 10 }}>Exporta os prospects do filtro atual, para campanhas e listas de contato.</span>
+        {podeEditar && <button className="btn btn-primary" type="button" onClick={conectarBatePapo} disabled={enviando}>{enviando ? 'Enviando…' : `Conectar bate-papo${escolhidos.size ? ` (${escolhidos.size})` : ''}`}</button>}
+        <span className="small muted" style={{ paddingBottom: 10 }}>Exportar planilha usa o filtro atual. Conectar bate-papo envia os prospects marcados ao WhatsApp.</span>
       </div>
       <section className="panel">
         <div className="table-wrap">
           <table className="t">
-            <thead><tr><th>Prospect</th><th>Cidade</th><th>Situação</th><th>Telefone</th><th>Atualizado</th></tr></thead>
+            <thead><tr>{podeEditar && <th style={{ width: 36 }}><input type="checkbox" aria-label="Marcar todos da página" checked={!!linhas?.length && linhas.every((l) => escolhidos.has(l.id))} onChange={(e) => setEscolhidos((s) => { const n = new Set(s); (linhas || []).forEach((l) => (e.target.checked ? n.add(l.id) : n.delete(l.id))); return n })} /></th>}<th>Prospect</th><th>Cidade</th><th>Situação</th><th>Telefone</th><th>Atualizado</th></tr></thead>
             <tbody>
-              {linhas === null ? <tr><td colSpan={5}><div className="empty"><div className="spinner" /></div></td></tr>
-                : !linhas.length ? <tr><td colSpan={5}><div className="empty"><h2>{soma ? 'Nenhum prospect com esse filtro' : 'Sua lista de prospects está vazia'}</h2><p>{soma ? 'Escolha outra situação.' : 'Na aba Base nacional, clique em Adicionar nos estabelecimentos que quer trabalhar.'}</p></div></td></tr>
+              {linhas === null ? <tr><td colSpan={6}><div className="empty"><div className="spinner" /></div></td></tr>
+                : !linhas.length ? <tr><td colSpan={6}><div className="empty"><h2>{soma ? 'Nenhum prospect com esse filtro' : 'Sua lista de prospects está vazia'}</h2><p>{soma ? 'Escolha outra situação.' : 'Na aba Base nacional, clique em Adicionar nos estabelecimentos que quer trabalhar.'}</p></div></td></tr>
                 : linhas.map((l) => (
                   <tr key={l.id} className="click" tabIndex={0} onClick={() => abrir(l.id)} onKeyDown={(e) => e.key === 'Enter' && abrir(l.id)}>
-                    <td><div style={{ fontWeight: 600 }}>{l.nome}</div><div className="sub">{l.categoria ? rotulo(l.categoria) : ''}</div></td>
+                    {podeEditar && <td onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={`Marcar ${l.nome}`} checked={escolhidos.has(l.id)} onChange={() => alternar(l.id)} /></td>}
+                    <td><div style={{ fontWeight: 600 }}>{l.nome}</div><div className="sub">{l.categoria ? rotulo(l.categoria) : ''}{l.chat_enviado_em ? ` · enviado ao bate-papo em ${dataBR(l.chat_enviado_em)}` : ''}</div></td>
                     <td>{l.cidade} <span className="sub">{l.uf}</span></td>
                     <td><span className="pill pill-sit">{SITUACAO_ROTULO[l.situacao]}</span></td>
                     <td className="mono">{l.telefone}</td>
