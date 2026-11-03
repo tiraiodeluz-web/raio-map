@@ -363,3 +363,52 @@ table.t { width: 100%; border-collapse: collapse; }
 .uso-barra { height: 6px; border-radius: 3px; background: var(--line); margin-top: 6px; overflow: hidden; }
 .uso-barra span { display: block; height: 100%; background: var(--blue-500, #2F7BFF); }
 .uso-barra span.cheio { background: #d97706; }
+
+/* recursos novos */
+.bloqueado { max-width: 560px; margin: 8vh auto 0; padding: 32px; display: grid; gap: 14px; justify-items: start; }
+.mm-num { width: 26px; height: 26px; border-radius: 50%; color: #fff; font: 700 12px/26px var(--f-display); text-align: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.filtros .field { min-width: 150px; }
+.pill-nid { background: #eef0f4; color: #5b6578; }
+.sem-dado { color: var(--faint); }
+.dois-col { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 960px) { .dois-col { grid-template-columns: 1fr; } }
+.link { background: none; border: 0; padding: 0; color: var(--cat-ativo); font-weight: 600; cursor: pointer; text-align: left; }
+.link:hover { text-decoration: underline; }
+.alert-info { background: #eef4fd; border: 1px solid #cfe0f7; color: #1d3f78; padding: 12px 14px; border-radius: var(--r-md); font-size: 14px; }
+.ia-chat { display: grid; grid-template-rows: 1fr auto auto auto; min-height: 60vh; }
+.ia-lista { padding: 16px; display: grid; gap: 18px; align-content: start; max-height: 62vh; overflow: auto; }
+.ia-par { display: grid; gap: 8px; }
+.ia-p { justify-self: end; max-width: 80%; background: #e8f0fc; border-radius: 12px 12px 2px 12px; padding: 10px 14px; display: grid; gap: 2px; }
+.ia-r { max-width: 90%; background: var(--surface); border: 1px solid var(--line); border-radius: 12px 12px 12px 2px; padding: 12px 14px; white-space: pre-wrap; line-height: 1.55; }
+.ia-erro { color: var(--err); background: var(--err-bg); }
+.ia-sug { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px; }
+.ia-form { display: flex; gap: 8px; padding: 14px 16px; }
+.ia-form .input { flex: 1; }
+.rota-lista { list-style: decimal; padding-left: 22px; display: grid; gap: 8px; }
+.rota-lista li { padding-left: 4px; }
+.rota-lista li::marker { font-weight: 700; color: var(--cat-ativo); }
+.rota-lista li { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.rota-acoes { display: flex; gap: 4px; }
+.rota-salva { border-top: 1px solid var(--line); }
+.rota-cab { width: 100%; display: flex; justify-content: space-between; gap: 10px; padding: 14px 18px; background: none; border: 0; cursor: pointer; text-align: left; font: inherit; }
+.visita { display: flex; gap: 10px; align-items: flex-start; }
+.sim-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 700px) { .sim-cards { grid-template-columns: 1fr; } }
+.sim-card { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid; border-radius: var(--r-md); padding: 14px; display: grid; gap: 3px; }
+.sim-card b { font: 700 20px/1.2 var(--f-display); white-space: nowrap; }
+.sim-card b small { font: 400 13px var(--f-body, inherit); color: var(--muted); }
+.sim-barra { display: grid; grid-template-columns: 110px 1fr auto; gap: 10px; align-items: center; }
+.sim-barra > div { background: #eef0f4; border-radius: 4px; height: 14px; overflow: hidden; }
+.sim-barra i { display: block; height: 100%; border-radius: 4px; }
+.rel-doc { padding: 28px; display: grid; gap: 18px; }
+.rel-doc h3 { font-size: 15px; margin-bottom: 6px; }
+.rel-doc ol { padding-left: 20px; display: grid; gap: 4px; }
+@media print {
+  .sidebar, .no-print, .faixa-teste, .sidebar-foot { display: none !important; }
+  .main { overflow: visible !important; height: auto !important; }
+  .page { padding: 0 !important; max-width: none; }
+  .rel-doc { border: 0; padding: 0; }
+  body { background: #fff; }
+}
+.nav-pago { margin-left: auto; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: rgba(255,255,255,.14); }

@@ -5,14 +5,20 @@ import { supabase } from '../lib/supabase'
 import { PAPEL_ROTULO } from '../lib/types'
 import Marca from './Marca'
 import { diasDeTeste, OFERTA } from '../lib/oferta'
-import { IcAjuda, IcClientes, IcConfig, IcFunil, IcMapa, IcPainel, IcProspeccao } from './Icones'
+import { IcAjuda, IcClientes, IcConfig, IcFunil, IcMapa, IcPainel, IcProspeccao , IcBusca } from './Icones'
 
 const ITENS = [
   { to: '/', rotulo: 'Dashboard', Ic: IcPainel, end: true },
   { to: '/mapa', rotulo: 'Mapa comercial', Ic: IcMapa },
   { to: '/clientes', rotulo: 'Clientes', Ic: IcClientes },
+  { to: '/inativos', rotulo: 'Clientes inativos', Ic: IcClientes },
   { to: '/prospeccao', rotulo: 'Prospecção', Ic: IcProspeccao },
   { to: '/funil', rotulo: 'Funil', Ic: IcFunil },
+  { to: '/concorrencia', pago: true, rotulo: 'Concorrência', Ic: IcMapa },
+  { to: '/rotas', pago: true, rotulo: 'Rotas de visita', Ic: IcMapa },
+  { to: '/simulador', rotulo: 'Simulador', Ic: IcPainel },
+  { to: '/relatorio', pago: true, rotulo: 'Relatório semanal', Ic: IcPainel },
+  { to: '/clyvo-ai', pago: true, rotulo: 'Clyvo AI', Ic: IcBusca },
   { to: '/configuracoes', rotulo: 'Configurações', Ic: IcConfig },
   { to: '/como-usar', rotulo: 'Como usar', Ic: IcAjuda },
 ]
@@ -43,8 +49,8 @@ export default function Layout() {
           <div className="org-name">{org?.nome}</div>
         )}
         <nav className="nav">
-          {ITENS.map(({ to, rotulo, Ic, end }) => (
-            <NavLink key={to} to={to} end={end}><Ic />{rotulo}</NavLink>
+          {ITENS.map(({ to, rotulo, Ic, end, pago }: { to: string; rotulo: string; Ic: typeof IcMapa; end?: boolean; pago?: boolean }) => (
+            <NavLink key={to} to={to} end={end}><Ic />{rotulo}{pago && org && org.plano_id === 'teste' && <small className="nav-pago">pago</small>}</NavLink>
           ))}
         </nav>
         <div className="sidebar-foot">
