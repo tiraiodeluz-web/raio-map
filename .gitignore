@@ -1,0 +1,9 @@
+node_modules
+dist
+.env.local
+.env.*.local
+*.log
+# dados de clientes nunca vão para o repositório
+*.csv
+*.xlsx
+*.pdf
