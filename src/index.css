@@ -318,3 +318,9 @@ table.t { width: 100%; border-collapse: collapse; }
 .kcard .parado { color: #b45309; font-weight: 600; }
 .kcard-mover { height: 28px; font-size: 12px; margin-top: 4px; }
 @media (max-width: 760px) { .kcol { flex-basis: 85vw; } }
+
+/* selos de telefone / WhatsApp */
+.selo { display: inline-block; margin-top: 3px; padding: 1px 7px; border-radius: 999px; font: 600 11px/1.6 var(--f-ui); white-space: nowrap; }
+.selo-bom { background: #e6f6ec; color: #166534; }
+.selo-ruim { background: #fdecec; color: #9b1c1c; }
+.selo-neutro { background: #eef2f8; color: #475569; }

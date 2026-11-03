@@ -4,7 +4,7 @@ import { useSessao } from '../context/Sessao'
 import { msgErro, supabase } from '../lib/supabase'
 import { PAPEL_ROTULO, type Membro, type Papel, type Plano } from '../lib/types'
 import { dataBR, dataHoraBR, fmt } from '../lib/format'
-import { chamarBatePapo } from '../lib/chat'
+import { chamarBatePapo, RETORNO_URL } from '../lib/chat'
 
 type Aba = 'empresa' | 'membros' | 'plano' | 'bate_papo' | 'atividade'
 
@@ -202,10 +202,18 @@ function BatePapo() {
   const [existe, setExiste] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
+  const [colunas, setColunas] = useState<{ id: string; nome: string }[]>([])
+  const [colInt, setColInt] = useState('')
+  const [colPerd, setColPerd] = useState('')
   async function carregar() {
     if (!org || !ehAdmin) return
-    const { data } = await supabase.from('integracoes').select('webhook_url,segredo').eq('org_id', org.id).eq('tipo', 'bate_papo').maybeSingle()
+    const [{ data }, cols] = await Promise.all([
+      supabase.from('integracoes').select('webhook_url,segredo,coluna_interessado,coluna_perdido').eq('org_id', org.id).eq('tipo', 'bate_papo').maybeSingle(),
+      supabase.from('colunas_funil').select('id,nome').eq('org_id', org.id).order('ordem'),
+    ])
     setExiste(!!data); setUrl(data?.webhook_url || ''); setSegredo(data?.segredo || null)
+    setColInt(data?.coluna_interessado || ''); setColPerd(data?.coluna_perdido || '')
+    setColunas((cols.data as { id: string; nome: string }[]) || [])
   }
   useEffect(() => { carregar() }, [org, ehAdmin]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!ehAdmin) return <div className="alert alert-warn">Só dono ou admin configura o bate-papo.</div>
@@ -213,7 +221,7 @@ function BatePapo() {
     e.preventDefault(); setErro(null)
     const u = url.trim()
     if (!/^https:\/\/\S+$/.test(u)) return setErro('Cole o endereço completo do webhook, começando com https://')
-    const { error } = await supabase.from('integracoes').upsert({ org_id: org!.id, tipo: 'bate_papo', webhook_url: u, atualizado_em: new Date().toISOString() }, { onConflict: 'org_id,tipo' })
+    const { error } = await supabase.from('integracoes').upsert({ org_id: org!.id, tipo: 'bate_papo', webhook_url: u, coluna_interessado: colInt || null, coluna_perdido: colPerd || null, atualizado_em: new Date().toISOString() }, { onConflict: 'org_id,tipo' })
     if (error) return setErro(msgErro(error))
     toast('Bate-papo conectado'); carregar()
   }
@@ -236,10 +244,30 @@ function BatePapo() {
         <input id="bp-url" className="input" type="url" placeholder="https://seu-n8n/webhook/..." value={url} onChange={(e) => setUrl(e.target.value)} />
       </label>
       <p className="small muted">No n8n, abra o nó <b>Webhook</b> do fluxo, método POST, e copie a <b>Production URL</b>. O fluxo precisa estar ativo.</p>
-      {segredo && (
-        <label className="field"><span>Chave de segurança (enviada no cabeçalho X-Clyvo-Token)</span>
-          <input className="input mono" readOnly value={segredo} onFocus={(e) => e.currentTarget.select()} />
+      <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        <label className="field"><span>Quando o contato tiver interesse, mover para</span>
+          <select id="bp-int" className="input" value={colInt} onChange={(e) => setColInt(e.target.value)}>
+            <option value="">Não mover</option>{colunas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select>
         </label>
+        <label className="field"><span>Quando não tiver interesse, mover para</span>
+          <select id="bp-perd" className="input" value={colPerd} onChange={(e) => setColPerd(e.target.value)}>
+            <option value="">Não mover</option>{colunas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          </select>
+        </label>
+      </div>
+      {!colunas.length && <p className="small muted">Abra a aba Funil uma vez para criar as colunas e poder escolher aqui.</p>}
+      {segredo && (
+        <section style={{ display: 'grid', gap: 10, paddingTop: 6, borderTop: '1px solid var(--line)' }}>
+          <h3>Retorno das conversas</h3>
+          <p className="small muted">No n8n, depois de cada aviso do Umbler, use um nó HTTP Request (POST) para este endereço, com o cabeçalho <b>X-Clyvo-Token</b> e o corpo em JSON: <code>{'{ "prospect_id": "...", "evento": "respondeu", "texto": "..." }'}</code>. Eventos: entregue, lida, sem_whatsapp, respondeu, interessado, nao_interessado.</p>
+          <label className="field"><span>Endereço de retorno</span>
+            <input className="input mono" readOnly value={RETORNO_URL} onFocus={(e) => e.currentTarget.select()} />
+          </label>
+          <label className="field"><span>Chave de segurança (cabeçalho X-Clyvo-Token)</span>
+            <input className="input mono" readOnly value={segredo} onFocus={(e) => e.currentTarget.select()} />
+          </label>
+        </section>
       )}
       {erro && <div className="alert alert-err">{erro}</div>}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

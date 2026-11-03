@@ -8,7 +8,7 @@ import { CONFIANCA_ROTULO, SITUACOES, SITUACAO_ROTULO, useSegmento, type LinhaBu
 import FichaEstabelecimento from '../components/FichaEstabelecimento'
 import FichaProspect from '../components/FichaProspect'
 import { baixarCsv } from '../lib/csv'
-import { chamarBatePapo, textoResultado } from '../lib/chat'
+import { chamarBatePapo, seloTelefone, textoResultado } from '../lib/chat'
 
 const POR_PAGINA = 50
 
@@ -128,7 +128,17 @@ function BaseNacional({ abrir }: { abrir: (id: number) => void }) {
   )
 }
 
-interface LinhaProspect { id: string; nome: string; cidade: string | null; uf: string | null; situacao: Situacao; telefone: string | null; categoria: string | null; nota: number | null; atualizado_em: string; fonte: string; chat_enviado_em: string | null }
+interface LinhaProspect { id: string; nome: string; cidade: string | null; uf: string | null; situacao: Situacao; telefone: string | null; categoria: string | null; nota: number | null; atualizado_em: string; fonte: string; chat_enviado_em: string | null; tipo_telefone: string | null; whatsapp_status: string | null; chat_bloqueado: boolean }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function filtroTel(qb: any, tel: string) {
+  if (tel === 'celular') return qb.eq('tipo_telefone', 'celular').or('whatsapp_status.is.null,whatsapp_status.eq.valido')
+  if (tel === 'fixo') return qb.eq('tipo_telefone', 'fixo')
+  if (tel === 'whatsapp_ok') return qb.eq('whatsapp_status', 'valido')
+  if (tel === 'sem_whatsapp') return qb.eq('whatsapp_status', 'invalido')
+  if (tel === 'sem_telefone') return qb.or('tipo_telefone.is.null,tipo_telefone.eq.invalido')
+  return qb
+}
 
 function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao: number }) {
   const { org, toast, podeEditar, ehAdmin } = useSessao()
@@ -138,6 +148,8 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
   const [escolhidos, setEscolhidos] = useState<Set<string>>(new Set())
   const [enviando, setEnviando] = useState(false)
   const [recarga, setRecarga] = useState(0)
+  const [tel, setTel] = useState('')
+  const [incluirFixos, setIncluirFixos] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [sit, setSit] = useState('')
   const [q, setQ] = useState('')
@@ -146,7 +158,7 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
   const [total, setTotal] = useState(0)
   const [pag, setPag] = useState(0)
 
-  useEffect(() => setPag(0), [sit, q])
+  useEffect(() => setPag(0), [sit, q, tel])
   useEffect(() => {
     if (!org) return
     supabase.rpc('bate_papo_conectado', { p_org: org.id }).then(({ data }) => setConectado(!!data))
@@ -157,12 +169,13 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
   }, [org, versao])
   useEffect(() => {
     if (!org) return
-    let qb = supabase.from('prospects').select('id,nome,cidade,uf,situacao,telefone,categoria,nota,atualizado_em,fonte,chat_enviado_em', { count: 'exact' }).eq('org_id', org.id)
+    let qb = supabase.from('prospects').select('id,nome,cidade,uf,situacao,telefone,categoria,nota,atualizado_em,fonte,chat_enviado_em,tipo_telefone,whatsapp_status,chat_bloqueado', { count: 'exact' }).eq('org_id', org.id)
     if (sit) qb = qb.eq('situacao', sit)
+    qb = filtroTel(qb, tel)
     const t = q.trim().replace(/[,()%]/g, ' ').trim()
     if (t) qb = qb.or(`nome.ilike.%${t}%,cidade.ilike.%${t}%`)
     qb.order('atualizado_em', { ascending: false }).range(pag * POR_PAGINA, pag * POR_PAGINA + POR_PAGINA - 1).then(({ data, count }) => { setLinhas((data as LinhaProspect[]) || []); setTotal(count || 0) })
-  }, [org, sit, q, pag, versao, recarga])
+  }, [org, sit, q, pag, versao, recarga, tel])
 
   async function conectarBatePapo() {
     if (!org) return
@@ -174,7 +187,7 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
     if (!ids.length) return toast('Marque os prospects que quer enviar.')
     if (!window.confirm(`Enviar ${ids.length} prospect${ids.length > 1 ? 's' : ''} ao bate-papo para abordagem pelo WhatsApp?`)) return
     setEnviando(true)
-    try { const r = await chamarBatePapo(org.id, 'enviar', ids); toast(textoResultado(r)); setEscolhidos(new Set()); setRecarga((n) => n + 1) }
+    try { const r = await chamarBatePapo(org.id, 'enviar', ids, incluirFixos); toast(textoResultado(r)); setEscolhidos(new Set()); setRecarga((n) => n + 1) }
     catch (e) { toast((e as Error).message) } finally { setEnviando(false) }
   }
   const alternar = (id: string) => setEscolhidos((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -189,6 +202,7 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
       for (let de = 0; ; de += 1000) {
         let qb = supabase.from('prospects').select('nome,documento,categoria,situacao,telefone,email,site,instagram,logradouro,bairro,cep,cidade,uf,observacoes,criado_em,atualizado_em').eq('org_id', org.id)
         if (sit) qb = qb.eq('situacao', sit)
+        qb = filtroTel(qb, tel)
         const t = q.trim().replace(/[,()%]/g, ' ').trim()
         if (t) qb = qb.or(`nome.ilike.%${t}%,cidade.ilike.%${t}%`)
         const { data, error: e2 } = await qb.order('nome').range(de, de + 999)
@@ -213,6 +227,13 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
       <div className="filters">
         <label className="field grow" style={{ maxWidth: 420 }}><span>Buscar</span><input id="mp-q" className="input" type="search" placeholder="Nome ou cidade" value={q} onChange={(e) => setQ(e.target.value)} /></label>
         <button className="btn" type="button" onClick={exportar} disabled={exportando || !total}>{exportando ? 'Exportando…' : 'Exportar planilha'}</button>
+        <label className="field"><span>Telefone</span>
+          <select id="mp-tel" className="input" value={tel} onChange={(e) => setTel(e.target.value)}>
+            <option value="">Todos</option><option value="celular">Celular (bom para WhatsApp)</option><option value="fixo">Fixo (para ligar)</option>
+            <option value="whatsapp_ok">WhatsApp confirmado</option><option value="sem_whatsapp">Sem WhatsApp</option><option value="sem_telefone">Sem telefone</option>
+          </select>
+        </label>
+        {podeEditar && <label className="small" style={{ display: 'flex', gap: 6, alignItems: 'center', paddingBottom: 10 }}><input type="checkbox" checked={incluirFixos} onChange={(e) => setIncluirFixos(e.target.checked)} />Enviar fixos também</label>}
         {podeEditar && <button className="btn btn-primary" type="button" onClick={conectarBatePapo} disabled={enviando}>{enviando ? 'Enviando…' : `Conectar bate-papo${escolhidos.size ? ` (${escolhidos.size})` : ''}`}</button>}
         <span className="small muted" style={{ paddingBottom: 10 }}>Exportar planilha usa o filtro atual. Conectar bate-papo envia os prospects marcados ao WhatsApp.</span>
       </div>
@@ -229,7 +250,7 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
                     <td><div style={{ fontWeight: 600 }}>{l.nome}</div><div className="sub">{l.categoria ? rotulo(l.categoria) : ''}{l.chat_enviado_em ? ` · enviado ao bate-papo em ${dataBR(l.chat_enviado_em)}` : ''}</div></td>
                     <td>{l.cidade} <span className="sub">{l.uf}</span></td>
                     <td><span className="pill pill-sit">{SITUACAO_ROTULO[l.situacao]}</span></td>
-                    <td className="mono">{l.telefone}</td>
+                    <td><span className="mono">{l.telefone}</span>{(() => { const sl = seloTelefone(l); return sl ? <div><span className={'selo ' + sl.classe}>{sl.texto}</span></div> : null })()}</td>
                     <td className="num">{dataBR(l.atualizado_em)}</td>
                   </tr>
                 ))}

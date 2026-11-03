@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useState, type DragEvent, type FormEve
 import { useSessao } from '../context/Sessao'
 import { msgErro, supabase } from '../lib/supabase'
 import FichaProspect from '../components/FichaProspect'
+import { seloTelefone } from '../lib/chat'
 
 interface Coluna { id: string; nome: string; ordem: number }
-interface Card { id: string; nome: string; cidade: string | null; uf: string | null; telefone: string | null; coluna_id: string | null; atualizado_em: string }
+interface Card { id: string; nome: string; cidade: string | null; uf: string | null; telefone: string | null; coluna_id: string | null; atualizado_em: string; tipo_telefone: string | null; whatsapp_status: string | null; chat_bloqueado: boolean }
 
 const PADRAO = ['Novo', 'Primeiro contato', 'Em conversa', 'Proposta enviada', 'Fechado', 'Perdido']
 const LIMITE = 2000
@@ -33,7 +34,7 @@ export default function Funil() {
       cols = ins.data?.sort((a, b) => a.ordem - b.ordem) || []
     }
     setColunas((cols as Coluna[]) || [])
-    const r = await supabase.from('prospects').select('id,nome,cidade,uf,telefone,coluna_id,atualizado_em').eq('org_id', org.id).order('atualizado_em', { ascending: false }).limit(LIMITE)
+    const r = await supabase.from('prospects').select('id,nome,cidade,uf,telefone,coluna_id,atualizado_em,tipo_telefone,whatsapp_status,chat_bloqueado').eq('org_id', org.id).order('atualizado_em', { ascending: false }).limit(LIMITE)
     if (r.error) return setErro(msgErro(r.error))
     setCards((r.data as Card[]) || [])
   }, [org, podeEditar])
@@ -137,6 +138,7 @@ export default function Funil() {
                         onDragEnd={() => { setArrastando(null); setSobre(null) }}>
                         <button type="button" className="kcard-nome" onClick={() => setAberto(c.id)}>{c.nome}</button>
                         <span className="small muted">{c.cidade ? `${c.cidade} – ${c.uf}` : c.uf || ''}</span>
+                        {(() => { const sl = seloTelefone(c); return sl ? <span><span className={'selo ' + sl.classe}>{sl.texto}</span></span> : null })()}
                         <div className="kcard-pe">
                           <span className={'small ' + (d >= 14 ? 'parado' : 'muted')}>{d === 0 ? 'hoje' : `há ${d} dia${d > 1 ? 's' : ''}`}</span>
                           {c.telefone && <a className="small mono" href={'tel:' + c.telefone.replace(/\D/g, '')}>{c.telefone}</a>}
