@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useSessao } from '../context/Sessao'
 import { supabase } from '../lib/supabase'
 import { PAPEL_ROTULO } from '../lib/types'
@@ -32,7 +32,7 @@ export default function Layout() {
         <span className="small" style={{ opacity: 0.8 }}>{org?.nome}</span>
       </div>
       <aside className={'sidebar' + (aberto ? ' open' : '')} onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setAberto(false) }}>
-        <a className="brand" href="/"><Marca /></a>
+        <Link className="brand" to="/"><Marca /></Link>
         {orgs.length > 1 ? (
           <div className="org-switch">
             <select aria-label="Empresa" value={org?.id} onChange={(e) => trocarOrg(e.target.value)}>

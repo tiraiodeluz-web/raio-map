@@ -3,7 +3,7 @@ import { useSessao } from '../context/Sessao'
 import { msgErro, supabase } from '../lib/supabase'
 import { dataBR, formatarDoc } from '../lib/format'
 import { UF_NOMES } from '../lib/geo'
-import { CONFIANCA_ROTULO, useSegmento, type Estabelecimento, type ResultadoGoogle } from '../lib/prospeccao'
+import { CONFIANCA_ROTULO, esquecer, useSegmento, type Estabelecimento, type ResultadoGoogle } from '../lib/prospeccao'
 
 const FONTE_ROTULO: Record<string, string> = {
   receita: 'Receita Federal (dados abertos do CNPJ)',
@@ -50,7 +50,7 @@ export default function FichaEstabelecimento({ id, onClose, onProspect }: { id: 
     if (!org || !e) return
     const { data, error } = await supabase.rpc('adicionar_prospect', { p_org: org.id, p_estab: e.id })
     if (error) return setErro(msgErro(error))
-    setProspectId(data as string); toast('Adicionado aos seus prospects'); onProspect?.(data as string)
+    esquecer('busca:'); esquecer('potenciais:'); setProspectId(data as string); toast('Adicionado aos seus prospects'); onProspect?.(data as string)
   }
 
   async function buscarGoogle() {

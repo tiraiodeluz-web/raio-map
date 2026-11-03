@@ -10,7 +10,7 @@ import { fmt, km } from '../lib/format'
 import FichaCliente from '../components/FichaCliente'
 import FichaEstabelecimento from '../components/FichaEstabelecimento'
 import { supabase } from '../lib/supabase'
-import type { PontoPotencial } from '../lib/prospeccao'
+import { lembrado, lembrar, type PontoPotencial } from '../lib/prospeccao'
 import { IcBusca } from '../components/Icones'
 
 const COR = { ativo: '#2563c9', inativo: '#c8433a', potencial: '#e07b22' }
@@ -53,6 +53,8 @@ export default function MapaComercial() {
   const nomeMun = (ibge: number | null) => (ibge && idxMun?.porIbge.get(ibge)?.nome) || ''
   useEffect(() => {
     if (!org) return
+    const guardado = lembrado<PontoPotencial[]>('potenciais:' + org.id, 15 * 60000)
+    if (guardado) { setPotenciais(guardado); return }
     let vivo = true
     ;(async () => {
       const out: PontoPotencial[] = []
@@ -61,6 +63,7 @@ export default function MapaComercial() {
         if (error || !data) break
         out.push(...(data as PontoPotencial[])); if (data.length < 1000) break
       }
+      lembrar('potenciais:' + org.id, out)
       if (vivo) setPotenciais(out)
     })()
     return () => { vivo = false }

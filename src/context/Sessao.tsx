@@ -29,6 +29,8 @@ export const useSessao = () => {
 
 const CHAVE_ORG = 'clyvomap.org'
 
+let municipiosCache: Municipio[] | null = null
+
 export function SessaoProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [carregando, setCarregando] = useState(true)
@@ -61,14 +63,21 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     setOrgs(lista)
   }, [session?.user.id])
 
+  // Só recarrega quando muda o usuário (não a cada renovação do login ou volta à aba).
+  // Municípios são fixos: carregam uma vez por abertura do app.
+  const uid = session?.user.id
   useEffect(() => {
-    if (!session) return
+    if (!uid) return
+    let vivo = true
     setCarregando(true)
     Promise.all([
       recarregarOrgs(),
-      supabase.from('municipios').select('*').range(0, 5999).then(({ data }) => setMunicipios((data as Municipio[]) || [])),
-    ]).finally(() => setCarregando(false))
-  }, [session, recarregarOrgs])
+      municipiosCache ? Promise.resolve(setMunicipios(municipiosCache)) : supabase.from('municipios').select('*').range(0, 5999).then(({ data }) => {
+        municipiosCache = (data as Municipio[]) || []; if (vivo) setMunicipios(municipiosCache)
+      }),
+    ]).finally(() => { if (vivo) setCarregando(false) })
+    return () => { vivo = false }
+  }, [uid]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const org = useMemo(() => orgs.find((o) => o.id === orgId) || orgs[0] || null, [orgs, orgId])
   const idxMun = useMemo(() => (municipios.length ? indexarMunicipios(municipios) : null), [municipios])

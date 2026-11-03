@@ -59,3 +59,12 @@ export function useSegmento() {
   return { seg, rotulo, categorias: seg?.categorias || [] }
 }
 export const CONFIANCA_ROTULO: Record<string, string> = { alta: 'alta', media: 'média', baixa: 'baixa' }
+
+// ---- Memória da sessão: evita refazer buscas ao trocar de aba (some ao recarregar a página) ----
+const memo = new Map<string, { em: number; v: unknown }>()
+export function lembrado<T>(chave: string, maxMs: number): T | undefined {
+  const m = memo.get(chave)
+  return m && Date.now() - m.em < maxMs ? (m.v as T) : undefined
+}
+export function lembrar(chave: string, v: unknown) { memo.set(chave, { em: Date.now(), v }) }
+export function esquecer(prefixo: string) { for (const k of [...memo.keys()]) if (k.startsWith(prefixo)) memo.delete(k) }

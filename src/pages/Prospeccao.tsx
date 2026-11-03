@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useSessao } from '../context/Sessao'
 import { msgErro, supabase } from '../lib/supabase'
 import { fmt, dataBR } from '../lib/format'
 import { UF_NOMES } from '../lib/geo'
-import { CONFIANCA_ROTULO, SITUACOES, SITUACAO_ROTULO, useSegmento, type LinhaBusca, type Situacao } from '../lib/prospeccao'
+import { CONFIANCA_ROTULO, esquecer, lembrado, lembrar, SITUACOES, SITUACAO_ROTULO, useSegmento, type LinhaBusca, type Situacao } from '../lib/prospeccao'
 import FichaEstabelecimento from '../components/FichaEstabelecimento'
 import FichaProspect from '../components/FichaProspect'
 import { baixarCsv } from '../lib/csv'
@@ -12,27 +12,39 @@ import { chamarBatePapo, seloTelefone, textoResultado } from '../lib/chat'
 
 const POR_PAGINA = 50
 
+let filtrosBase = { uf: '', mun: '', q: '', conf: '', cat: '', carteira: false, pag: 0 }
+
 function BaseNacional({ abrir }: { abrir: (id: number) => void }) {
   const { org, municipios, podeEditar, toast } = useSessao()
   const { seg, rotulo, categorias } = useSegmento()
-  const [uf, setUf] = useState('')
-  const [mun, setMun] = useState('')
-  const [q, setQ] = useState('')
-  const [conf, setConf] = useState('')
-  const [cat, setCat] = useState('')
-  const [carteira, setCarteira] = useState(false)
-  const [pag, setPag] = useState(0)
-  const [linhas, setLinhas] = useState<LinhaBusca[] | null>(null)
+  // filtros e página ficam guardados enquanto o app estiver aberto, para voltar de onde parou
+  const salvo = filtrosBase
+  const [uf, setUf] = useState(salvo.uf)
+  const [mun, setMun] = useState(salvo.mun)
+  const [q, setQ] = useState(salvo.q)
+  const [conf, setConf] = useState(salvo.conf)
+  const [cat, setCat] = useState(salvo.cat)
+  const [carteira, setCarteira] = useState(salvo.carteira)
+  const [pag, setPag] = useState(salvo.pag)
   const [erro, setErro] = useState<string | null>(null)
-  const [totalBase, setTotalBase] = useState<number | null>(null)
+  const [totalBase, setTotalBase] = useState<number | null>(() => lembrado<number>('total-base', 30 * 60000) ?? null)
   const [versao, setVersao] = useState(0)
+  const chave = org ? 'busca:' + JSON.stringify([org.id, uf, mun, q.trim(), conf, cat, carteira, pag]) : ''
+  const [linhas, setLinhas] = useState<LinhaBusca[] | null>(() => (chave && lembrado<LinhaBusca[]>(chave, 5 * 60000)) || null)
 
-  useEffect(() => { supabase.from('estabelecimentos').select('id', { count: 'exact', head: true }).then(({ count }) => setTotalBase(count || 0)) }, [])
+  useEffect(() => { filtrosBase = { uf, mun, q, conf, cat, carteira, pag } }, [uf, mun, q, conf, cat, carteira, pag])
+  useEffect(() => {
+    if (totalBase !== null) return
+    supabase.from('estabelecimentos').select('id', { count: 'estimated', head: true }).then(({ count }) => { setTotalBase(count || 0); lembrar('total-base', count || 0) })
+  }, [totalBase])
   const munsUf = useMemo(() => municipios.filter((m) => m.uf === uf).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')), [municipios, uf])
-  useEffect(() => setPag(0), [uf, mun, q, conf, cat, carteira])
+  const primeiro = useRef(true)
+  useEffect(() => { if (primeiro.current) { primeiro.current = false; return } setPag(0) }, [uf, mun, q, conf, cat, carteira])
 
   useEffect(() => {
     if (!org) return
+    const guardado = lembrado<LinhaBusca[]>(chave, 5 * 60000)
+    if (guardado) { setLinhas(guardado); return }
     let vivo = true
     const t = setTimeout(async () => {
       setErro(null)
@@ -42,14 +54,14 @@ function BaseNacional({ abrir }: { abrir: (id: number) => void }) {
         p_limite: POR_PAGINA, p_offset: pag * POR_PAGINA,
       })
       if (!vivo) return
-      if (error) setErro(msgErro(error)); else setLinhas(data as LinhaBusca[])
+      if (error) setErro(msgErro(error)); else { setLinhas(data as LinhaBusca[]); lembrar(chave, data) }
     }, 250)
     return () => { vivo = false; clearTimeout(t) }
-  }, [org, uf, mun, q, conf, cat, carteira, pag, versao])
+  }, [chave, versao]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function adicionar(id: number) {
     const { error } = await supabase.rpc('adicionar_prospect', { p_org: org!.id, p_estab: id })
-    if (error) toast(msgErro(error)); else { toast('Adicionado aos seus prospects'); setVersao((v) => v + 1) }
+    if (error) toast(msgErro(error)); else { toast('Adicionado aos seus prospects'); esquecer('busca:'); esquecer('potenciais:'); setVersao((v) => v + 1) }
   }
 
   const total = linhas?.[0]?.total ?? 0
@@ -286,7 +298,7 @@ export default function Prospeccao() {
         <button type="button" role="tab" aria-selected={aba === 'meus'} aria-pressed={aba === 'meus'} onClick={() => setSp({ aba: 'meus' })}>Meus prospects</button>
       </div>
       {aba === 'base' ? <BaseNacional abrir={setEstab} /> : <MeusProspects abrir={setProspect} versao={versao} />}
-      {estab !== null && <FichaEstabelecimento id={estab} onClose={() => setEstab(null)} onProspect={() => setVersao((v) => v + 1)} />}
+      {estab !== null && <FichaEstabelecimento id={estab} onClose={() => setEstab(null)} onProspect={() => { esquecer('busca:'); esquecer('potenciais:'); setVersao((v) => v + 1) }} />}
       {prospect && <FichaProspect id={prospect} onClose={() => setProspect(null)} onChange={() => setVersao((v) => v + 1)} />}
     </div>
   )
