@@ -6,3 +6,4 @@ export const IcConfig = () => (<svg {...base}><circle cx="12" cy="12" r="3" /><p
 export const IcBusca = () => (<svg {...base}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>)
 export const IcImportar = () => (<svg {...base}><path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14" /></svg>)
 export const IcProspeccao = () => (<svg {...base}><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>)
+export const IcFunil = () => (<svg {...base}><rect x="3" y="4" width="5" height="16" rx="1.5" /><rect x="9.5" y="4" width="5" height="10" rx="1.5" /><rect x="16" y="4" width="5" height="13" rx="1.5" /></svg>)

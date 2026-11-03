@@ -295,3 +295,26 @@ table.t { width: 100%; border-collapse: collapse; }
   .map-tools .scroll { display: none; }
   .map-tools { max-height: none; }
 }
+
+/* funil (kanban) */
+.kanban { display: flex; gap: 14px; align-items: flex-start; overflow-x: auto; padding-bottom: 12px; }
+.kcol { flex: 0 0 272px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-md); display: grid; gap: 0; max-height: calc(100vh - 220px); grid-template-rows: auto 1fr; }
+.kcol.sobre { outline: 2px solid var(--blue-500, #2F7BFF); outline-offset: -2px; }
+.kcol-h { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.kcol-nome { flex: 1; text-align: left; appearance: none; border: 0; background: none; font: 600 14px var(--f-ui); color: var(--ink); padding: 2px 0; cursor: text; }
+.kcol-nome:disabled { cursor: default; }
+.kcol-h .input { flex: 1; height: 30px; }
+.kcol-acoes { display: flex; gap: 2px; }
+.kcol-acoes button { appearance: none; border: 0; background: none; width: 24px; height: 24px; border-radius: 4px; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; }
+.kcol-acoes button:hover:not(:disabled) { background: var(--line); color: var(--ink); }
+.kcol-acoes button:disabled { opacity: .3; cursor: default; }
+.kcol-b { display: grid; gap: 8px; padding: 10px; overflow-y: auto; align-content: start; }
+.kcol-nova { padding: 12px; gap: 8px; display: grid; align-content: start; background: transparent; border-style: dashed; max-height: none; }
+.kcard { display: grid; gap: 4px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); cursor: grab; }
+.kcard.arrastando { opacity: .45; }
+.kcard-nome { text-align: left; appearance: none; border: 0; background: none; padding: 0; font: 600 14px var(--f-ui); color: var(--ink); cursor: pointer; }
+.kcard-nome:hover { text-decoration: underline; }
+.kcard-pe { display: flex; justify-content: space-between; gap: 8px; }
+.kcard .parado { color: #b45309; font-weight: 600; }
+.kcard-mover { height: 28px; font-size: 12px; margin-top: 4px; }
+@media (max-width: 760px) { .kcol { flex-basis: 85vw; } }
