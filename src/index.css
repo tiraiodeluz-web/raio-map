@@ -412,3 +412,7 @@ table.t { width: 100%; border-collapse: collapse; }
   body { background: #fff; }
 }
 .nav-pago { margin-left: auto; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: rgba(255,255,255,.14); }
+.rota-lista { list-style: none; padding-left: 0; counter-reset: parada; }
+.rota-lista li { counter-increment: parada; }
+.rota-lista li::before { content: counter(parada); flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--cat-ativo); color: #fff; font: 700 12px/24px var(--f-display); text-align: center; }
+.rota-lista li > span:first-child { flex: 1; }

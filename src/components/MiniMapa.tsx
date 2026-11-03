@@ -33,6 +33,7 @@ export default function MiniMapa({ pontos, onClick, linha, altura = 460 }: { pon
         : L.circleMarker([p.lat, p.lng], { radius: 6, color: '#fff', weight: 1.5, fillColor: p.cor, fillOpacity: 0.92 })
       mk.bindTooltip(p.titulo).on('click', () => clique.current?.(p.id)).addTo(g)
     }
+    m.invalidateSize()
     if (bounds.length) m.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 })
   }, [pontos, linha])
 

@@ -9,6 +9,7 @@ const PRIMEIROS = [
   ['Veja o mapa', 'No Mapa comercial, digite um CEP para achar os clientes mais perto.'],
   ['Escolha potenciais clientes', 'Em Prospecção, filtre a base nacional e adicione as empresas que quer trabalhar.'],
   ['Acompanhe no Funil', 'Mova cada prospect pelas colunas até fechar ou descartar.'],
+  ['Recupere clientes inativos', 'Em Clientes inativos, veja quem parou de comprar e chame pelo WhatsApp.'],
   ['Conecte o bate-papo (opcional)', 'Envie listas para o WhatsApp da empresa e receba as respostas de volta.'],
 ]
 
@@ -97,6 +98,83 @@ const SECOES: Secao[] = [
       'Há quantos dias fica em laranja quando o prospect está parado há 14 dias ou mais.',
       'Clique no nome da empresa para abrir a ficha. Toda mudança de coluna fica no histórico.',
     ],
+  },
+  {
+    id: 'inativos', titulo: 'Clientes inativos', link: '/inativos',
+    resumo: 'Mostra quem já comprou e parou de comprar, para você ligar, visitar e recuperar.',
+    imagens: [{ src: '/ajuda/inativos.jpg', legenda: 'Clientes inativos por tempo sem comprar, com mapa por cores e botão de WhatsApp.' }],
+    passos: [
+      'Os quatro quadros do topo mostram o total, os ativos, os inativos e os que ainda não têm data de última compra. Clique em um quadro para filtrar.',
+      'Cliente inativo é o que está sem comprar há mais dias do que a regra. Dono e admin mudam essa regra no campo do topo e clicam em Salvar regra.',
+      'Quem não tem data de última compra aparece como Não identificado. O sistema não presume que esteja inativo.',
+      'Filtre por situação, estado, cidade ou nome. No mapa, azul é ativo, vermelho é inativo e cinza é não identificado.',
+      'O botão WhatsApp abre a conversa com uma mensagem pronta quando o cliente tem telefone de celular válido.',
+    ],
+    dicas: ['Para classificar toda a carteira, importe a planilha com a coluna de última compra ou preencha a data na ficha do cliente.'],
+  },
+  {
+    id: 'concorrencia', titulo: 'Concorrência e oportunidades (planos pagos)', link: '/concorrencia',
+    resumo: 'Lista os estabelecimentos de uma região para você classificar como concorrente, distribuidor, revendedor, fornecedor ou potencial cliente.',
+    imagens: [{ src: '/ajuda/concorrencia.jpg', legenda: 'Estabelecimentos de uma cidade, filtro por categoria, mapa e ficha para classificar.' }],
+    passos: [
+      'Escolha o estado e, se quiser, a cidade. Clique em Buscar na região.',
+      'Clique em um estabelecimento (na lista ou no mapa) para classificar, escrever como você sabe e anotar observações.',
+      'Use os botões acima da lista para ver só uma categoria ou só os que ainda não foram classificados.',
+      'Dono e admin ajustam as categorias em Editar categorias: nome, cor, ligar e desligar, e criar novas.',
+      'Em Potencial cliente, o botão Adicionar como prospect leva a empresa para a sua lista de trabalho.',
+    ],
+    dicas: ['A atividade que aparece na base é só uma sugestão. A classificação vale o que você registrar.'],
+  },
+  {
+    id: 'rotas', titulo: 'Rotas de visita (planos pagos)', link: '/rotas',
+    resumo: 'Monta a rota de visitas a clientes ou prospects, na ordem mais próxima, e guarda o histórico do que foi visitado.',
+    imagens: [{ src: '/ajuda/rotas.jpg', legenda: 'Paradas escolhidas, rota no mapa e ordem das visitas que pode ser ajustada.' }],
+    passos: [
+      'Escolha clientes ou prospects, filtre por estado, cidade ou nome e clique em Buscar.',
+      'Marque as paradas (até 25). A primeira marcada é o ponto de partida. Clique em Montar rota.',
+      'O sistema sugere a ordem pela proximidade. Use as setas para subir ou descer uma parada e o x para tirar.',
+      'Salve a rota. Em Rotas salvas, marque cada visita como feita e escreva o que aconteceu.',
+      'Abrir no Google Maps mostra o trajeto por ruas, pronto para seguir no celular.',
+    ],
+    dicas: ['A distância mostrada é em linha reta e serve só para ordenar as visitas.'],
+  },
+  {
+    id: 'simulador', titulo: 'Simulador de expansão', link: '/simulador',
+    resumo: 'Estima quanto uma nova cidade ou região pode render, com três cenários.',
+    imagens: [{ src: '/ajuda/simulador.jpg', legenda: 'Cenários conservador, intermediário e otimista, com comparação do faturamento anual.' }],
+    passos: [
+      'Escolha o estado e, se quiser, a cidade. O sistema mostra quantos clientes e prospects você já tem lá.',
+      'Informe quantos clientes novos espera, o ticket médio e a frequência de compra.',
+      'Se quiser ver a margem, informe a margem de lucro em porcentagem.',
+      'Compare os três cenários: conservador (metade dos clientes), intermediário e otimista (40% a mais).',
+    ],
+    dicas: ['É uma simulação com os números que você informa. Não é previsão nem garantia de faturamento.'],
+  },
+  {
+    id: 'relatorio', titulo: 'Relatório semanal (planos pagos)', link: '/relatorio',
+    resumo: 'Resumo da semana comercial para a diretoria, comparado com a semana anterior.',
+    imagens: [{ src: '/ajuda/relatorio.jpg', legenda: 'Relatório da semana com variação, cidades em movimento, vendedores e envio por e-mail.' }],
+    passos: [
+      'Escolha a semana. A última semana completa já vem selecionada.',
+      'Clique em Salvar em PDF e, na janela de impressão, escolha Salvar como PDF.',
+      'Dono e admin ativam o envio automático por e-mail, escolhendo o dia, a hora e os destinatários.',
+      'Cada semana é enviada uma única vez, no dia e horário combinados.',
+    ],
+  },
+  {
+    id: 'clyvo-ai', titulo: 'Clyvo AI (planos pagos)', link: '/clyvo-ai',
+    resumo: 'Faça perguntas em português sobre clientes, prospects e equipe. A resposta usa só os dados da sua empresa.',
+    imagens: [
+      { src: '/ajuda/clyvo-ai.jpg', legenda: 'Perguntas e respostas com recomendações práticas, e o saldo de créditos.' },
+      { src: '/ajuda/plano-pago.jpg', legenda: 'No teste grátis, os recursos pagos aparecem bloqueados com a explicação.' },
+    ],
+    passos: [
+      'Clique em uma sugestão ou escreva sua pergunta, por exemplo: quais clientes devo ligar esta semana?',
+      'Cada pergunta usa 1 crédito. O saldo aparece no topo da tela.',
+      'O histórico das suas perguntas fica na própria tela. Dono e admin também veem as da equipe.',
+      'Se faltar informação (como a data da última compra), a resposta avisa o que está faltando.',
+    ],
+    dicas: ['A IA pode errar. Confira os números nas telas antes de decidir.'],
   },
   {
     id: 'equipe', titulo: 'Equipe e permissões', link: '/configuracoes',
