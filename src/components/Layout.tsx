@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { PAPEL_ROTULO } from '../lib/types'
 import Marca from './Marca'
 import { diasDeTeste, OFERTA } from '../lib/oferta'
-import { IcClientes, IcConfig, IcFunil, IcMapa, IcPainel, IcProspeccao } from './Icones'
+import { IcAjuda, IcClientes, IcConfig, IcFunil, IcMapa, IcPainel, IcProspeccao } from './Icones'
 
 const ITENS = [
   { to: '/', rotulo: 'Dashboard', Ic: IcPainel, end: true },
@@ -14,6 +14,7 @@ const ITENS = [
   { to: '/prospeccao', rotulo: 'Prospecção', Ic: IcProspeccao },
   { to: '/funil', rotulo: 'Funil', Ic: IcFunil },
   { to: '/configuracoes', rotulo: 'Configurações', Ic: IcConfig },
+  { to: '/como-usar', rotulo: 'Como usar', Ic: IcAjuda },
 ]
 
 export default function Layout() {

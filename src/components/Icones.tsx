@@ -7,3 +7,4 @@ export const IcBusca = () => (<svg {...base}><circle cx="11" cy="11" r="7" /><pa
 export const IcImportar = () => (<svg {...base}><path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14" /></svg>)
 export const IcProspeccao = () => (<svg {...base}><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>)
 export const IcFunil = () => (<svg {...base}><rect x="3" y="4" width="5" height="16" rx="1.5" /><rect x="9.5" y="4" width="5" height="10" rx="1.5" /><rect x="16" y="4" width="5" height="13" rx="1.5" /></svg>)
+export const IcAjuda = () => (<svg {...base}><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6" /><path d="M12 17h.01" /></svg>)

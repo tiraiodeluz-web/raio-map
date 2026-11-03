@@ -324,3 +324,34 @@ table.t { width: 100%; border-collapse: collapse; }
 .selo-bom { background: #e6f6ec; color: #166534; }
 .selo-ruim { background: #fdecec; color: #9b1c1c; }
 .selo-neutro { background: #eef2f8; color: #475569; }
+
+/* como usar */
+.ajuda { max-width: 1240px; }
+.ajuda-grid { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 24px; align-items: start; }
+.ajuda-indice { position: sticky; top: 20px; display: grid; gap: 2px; }
+.ajuda-indice a { padding: 7px 10px; border-radius: var(--r-sm); color: var(--muted); text-decoration: none; font-size: 14px; }
+.ajuda-indice a:hover { background: var(--paper); color: var(--ink); }
+.ajuda-conteudo { display: grid; gap: 20px; min-width: 0; }
+.ajuda-secao { display: grid; gap: 14px; scroll-margin-top: 20px; }
+.ajuda-cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.ajuda-resumo { color: var(--muted); max-width: 70ch; margin: 0; }
+.ajuda-imgs { display: grid; gap: 14px; }
+.ajuda-imgs.duas { grid-template-columns: 1fr 1fr; }
+.ajuda-imgs figure { margin: 0; display: grid; gap: 6px; }
+.ajuda-imgs button { appearance: none; padding: 0; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; background: none; cursor: zoom-in; display: block; }
+.ajuda-imgs img { display: block; width: 100%; height: auto; }
+.ajuda-imgs figcaption { font-size: 12.5px; color: var(--muted); }
+.ajuda-lista { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 75ch; line-height: 1.5; }
+.ajuda-passos-iniciais { margin: 0; padding-left: 22px; display: grid; gap: 10px; }
+.ajuda-passos-iniciais li { padding-left: 4px; }
+.ajuda-passos-iniciais b { display: block; }
+.ajuda-passos-iniciais span { color: var(--muted); font-size: 14px; }
+.ajuda-faq { margin: 0; display: grid; gap: 4px; max-width: 75ch; }
+.ajuda-faq dt { font-weight: 600; margin-top: 10px; }
+.ajuda-faq dd { margin: 0; color: var(--muted); line-height: 1.5; }
+.ajuda .obs p { margin: 0; }
+.ajuda-zoom { position: fixed; inset: 0; z-index: 60; background: rgba(5,7,13,.82); display: grid; place-items: center; padding: 24px; }
+.ajuda-zoom figure { margin: 0; max-width: min(1360px, 100%); display: grid; gap: 10px; }
+.ajuda-zoom img { width: 100%; height: auto; border-radius: var(--r-sm); max-height: calc(100vh - 110px); object-fit: contain; }
+.ajuda-zoom figcaption { color: #dfe6f3; display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 14px; }
+@media (max-width: 900px) { .ajuda-grid { grid-template-columns: 1fr; } .ajuda-indice { position: static; display: flex; flex-wrap: wrap; } .ajuda-imgs.duas { grid-template-columns: 1fr; } }

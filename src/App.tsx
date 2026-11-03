@@ -11,6 +11,7 @@ import Configuracoes from './pages/Configuracoes'
 import NovaSenha from './pages/NovaSenha'
 import Prospeccao from './pages/Prospeccao'
 import Funil from './pages/Funil'
+import ComoUsar from './pages/ComoUsar'
 
 const MapaComercial = lazy(() => import('./pages/MapaComercial'))
 
@@ -33,6 +34,7 @@ function Rotas() {
         <Route path="clientes/importar" element={<Importar />} />
         <Route path="prospeccao" element={<Prospeccao />} />
         <Route path="funil" element={<Funil />} />
+        <Route path="como-usar" element={<ComoUsar />} />
         <Route path="configuracoes" element={<Configuracoes />} />
         <Route path="nova-empresa" element={<NovaEmpresa />} />
         <Route path="*" element={<Navigate to="/" replace />} />
