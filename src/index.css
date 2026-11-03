@@ -273,5 +273,7 @@ table.t { width: 100%; border-collapse: collapse; }
   .map-tools { width: auto; right: 12px; left: 12px; top: 12px; max-height: 46%; }
   .map-panel { width: auto; left: 12px; right: 12px; top: auto; bottom: 12px; height: 50%; }
   .legend { display: none; }
-  .mapa .leaflet-bottom.leaflet-left { left: 0; bottom: 50%; }
+  .mapa .leaflet-bottom.leaflet-left { left: 0; }
+  .map-tools .scroll { display: none; }
+  .map-tools { max-height: none; }
 }
