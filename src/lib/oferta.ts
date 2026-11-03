@@ -4,7 +4,7 @@ export const OFERTA = {
   preco: 'R$ 5.000',
   precoDetalhe: 'pagamento único, sem mensalidade',
   custosCliente: 'Servidor, IA e consultas ao Google ficam na conta da sua empresa (cerca de R$ 150 por mês, conforme o uso).',
-  contato: 'https://www.clyvotecnologia.online/#contato',
+  contato: 'https://pay.cakto.com.br/ss4bjts_1277685',
 }
 
 /** Dias restantes do teste (0 = venceu). null quando a empresa não está em teste. */
