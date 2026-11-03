@@ -3,7 +3,7 @@ import { useSessao } from '../context/Sessao'
 import { msgErro, supabase } from '../lib/supabase'
 import { dataBR, formatarDoc } from '../lib/format'
 import { UF_NOMES } from '../lib/geo'
-import { CATEGORIA_ROTULO, CONFIANCA_ROTULO, type Estabelecimento, type ResultadoGoogle } from '../lib/prospeccao'
+import { CONFIANCA_ROTULO, useSegmento, type Estabelecimento, type ResultadoGoogle } from '../lib/prospeccao'
 
 const FONTE_ROTULO: Record<string, string> = {
   receita: 'Receita Federal (dados abertos do CNPJ)',
@@ -13,6 +13,7 @@ const FONTE_ROTULO: Record<string, string> = {
 
 export default function FichaEstabelecimento({ id, onClose, onProspect }: { id: number; onClose: () => void; onProspect?: (prospectId: string) => void }) {
   const { org, podeEditar, toast } = useSessao()
+  const { rotulo } = useSegmento()
   const [e, setE] = useState<Estabelecimento | null>(null)
   const [cidade, setCidade] = useState('')
   const [jaCliente, setJaCliente] = useState(false)
@@ -114,7 +115,7 @@ export default function FichaEstabelecimento({ id, onClose, onProspect }: { id: 
 
             <dl className="kv">
               <dt>CNPJ</dt><dd className="mono">{formatarDoc(e.cnpj)}</dd>
-              <dt>Categoria</dt><dd>{CATEGORIA_ROTULO[e.categoria || ''] || '—'}</dd>
+              <dt>Categoria</dt><dd>{rotulo(e.categoria)}</dd>
               <dt>CNAE principal</dt><dd className="mono">{e.cnae_principal || '—'}</dd>
               <dt>Endereço</dt><dd>{[e.logradouro, e.numero, e.complemento, e.bairro].filter(Boolean).join(', ') || '—'}</dd>
               <dt>CEP</dt><dd className="mono">{e.cep || '—'}</dd>

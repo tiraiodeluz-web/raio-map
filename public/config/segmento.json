@@ -1,0 +1,211 @@
+{
+  "_sobre": "Configuração do segmento desta instalação. O app (rótulos e textos) e o robô da Receita (o que buscar) leem este arquivo. Para outro tipo de B2B, troque os valores e rode o robô de novo.",
+  "nome": "Artigos religiosos",
+  "publico": "lojas, livrarias, distribuidoras e paróquias",
+  "descricao_ia": "Você ajuda uma distribuidora de artigos religiosos a encontrar compradores: lojas, livrarias e distribuidoras que revendem artigos religiosos (imagens, terços, bíblias, paramentos, presentes religiosos) e paróquias ou instituições católicas.",
+  "cnaes_comercio": [
+    "4789099",
+    "4789001",
+    "4761001",
+    "4649499",
+    "4693100",
+    "4647801"
+  ],
+  "palavras_fortes": [
+    "ARTIGOS RELIGIOSOS",
+    "ART RELIGIOSOS",
+    "ARTS RELIGIOSOS",
+    "ARTIGO RELIGIOSO",
+    "ARTIGOS CATOLICOS",
+    "ARTIGOS SACROS",
+    "ARTE SACRA",
+    "ARTES SACRAS",
+    "ARTIGOS LITURGICOS",
+    "PARAMENTOS",
+    "LIVRARIA CATOLICA",
+    "LIVRARIA RELIGIOSA",
+    "LIVRARIA EVANGELICA",
+    "ARTIGOS EVANGELICOS",
+    "ARTIGOS GOSPEL",
+    "IMAGENS SACRAS",
+    "IMAGENS RELIGIOSAS",
+    "PRESENTES RELIGIOSOS",
+    "LOJA CATOLICA",
+    "LOJA RELIGIOSA"
+  ],
+  "palavras_fracas": [
+    "RELIGIOS[OA]S?",
+    "CATOLIC[OA]S?",
+    "SACR[OA]S?",
+    "LITURGIC[OA]S?",
+    "GOSPEL",
+    "EVANGELIC[OA]S?",
+    "TERCOS?",
+    "DEVOCIONAIS?"
+  ],
+  "excluir": [
+    "IGREJA",
+    "PAROQUIA",
+    "DIOCESE",
+    "ARQUIDIOCESE",
+    "MITRA",
+    "CONGREGACAO",
+    "ASSEMBLEIA",
+    "MINISTERIO",
+    "TEMPLO",
+    "COLEGIO",
+    "ESCOLA",
+    "FACULDADE",
+    "HOSPITAL",
+    "CEMITERIO",
+    "FUNERARIA",
+    "RADIO",
+    "TELEVISAO",
+    "SEMINARIO",
+    "CONVENTO",
+    "MOSTEIRO",
+    "ASSOCIACAO",
+    "FUNDACAO",
+    "INSTITUTO"
+  ],
+  "nomes_ambiguos": [
+    "(SAO|SANTA|SANTO) [A-Z]{3,}",
+    "NOSSA SENHORA",
+    "N SRA",
+    "NSA SRA",
+    "SAGRAD[OA] CORACAO",
+    "SAGRADA FAMILIA",
+    "DIVIN[OA]",
+    "FATIMA",
+    "APARECIDA",
+    "PROVIDENCIA",
+    "ARCANJO",
+    "ESPIRITO SANTO",
+    "JUDAS TADEU",
+    "MAE DE DEUS",
+    "MAE RAINHA",
+    "PIETA",
+    "AVE MARIA",
+    "MILAGRES?",
+    "BENCAOS?",
+    "GRACAS",
+    "IMACULADA",
+    "MENINO JESUS",
+    "JESUS",
+    "CRISTO",
+    "EMANUEL",
+    "ARCA DE NOE",
+    "MANA"
+  ],
+  "instituicoes": {
+    "ativo": true,
+    "cnaes": [
+      "9491000"
+    ],
+    "categoria": "instituicao_religiosa",
+    "fortes": [
+      "PAROQUIA",
+      "MITRA",
+      "DIOCESE",
+      "DIOCESANA",
+      "ARQUIDIOCESE",
+      "ARQUIDIOCESANA",
+      "PRELAZIA",
+      "SANTUARIO",
+      "CATEDRAL",
+      "BASILICA",
+      "IGREJA CATOLICA"
+    ],
+    "fracas": [
+      "CAPELA",
+      "CONVENTO",
+      "MOSTEIRO",
+      "IRMANDADE",
+      "CONFRARIA",
+      "SEMINARIO",
+      "RENOVACAO CARISMATICA",
+      "COMUNIDADE CATOLICA",
+      "CONGREGACAO",
+      "PASTORAL",
+      "ORDEM TERCEIRA",
+      "FRANCISCAN[OA]S?",
+      "SALESIAN[OA]S?",
+      "BENEDITIN[OA]S?",
+      "CARMELITAS?",
+      "VICENTIN[OA]S?"
+    ],
+    "excluir": [
+      "EVANGELIC[OA]",
+      "ASSEMBLEIA",
+      "BATISTA",
+      "PRESBITERIANA",
+      "ADVENTISTA",
+      "PENTECOSTAL",
+      "UNIVERSAL",
+      "QUADRANGULAR",
+      "LUTERANA",
+      "METODISTA",
+      "ESPIRITA",
+      "UMBANDA",
+      "CANDOMBLE",
+      "MACONICA",
+      "ANGLICANA",
+      "MORMON",
+      "TESTEMUNHAS",
+      "CONGREGACAO CRISTA",
+      "DEUS E AMOR",
+      "MUNDIAL"
+    ]
+  },
+  "categorias": [
+    {
+      "id": "instituicao_religiosa",
+      "rotulo": "Paróquia / instituição católica",
+      "cnaes": [
+        "9491000"
+      ]
+    },
+    {
+      "id": "livraria_religiosa",
+      "rotulo": "Livraria",
+      "palavras": [
+        "LIVRARIA",
+        "LIVROS"
+      ],
+      "cnaes": [
+        "4761001"
+      ]
+    },
+    {
+      "id": "atacado_religioso",
+      "rotulo": "Atacado / distribuidora",
+      "palavras": [
+        "DISTRIBUIDORA",
+        "ATACADO",
+        "ATACADISTA",
+        "IMPORTADORA"
+      ],
+      "cnae_prefixos": [
+        "46"
+      ]
+    },
+    {
+      "id": "presentes_religiosos",
+      "rotulo": "Presentes e artesanato",
+      "palavras": [
+        "PRESENTE",
+        "PRESENTES",
+        "ARTESANATO",
+        "SOUVENIR"
+      ],
+      "cnaes": [
+        "4789001"
+      ]
+    },
+    {
+      "id": "loja_religiosa",
+      "rotulo": "Loja",
+      "padrao": true
+    }
+  ]
+}

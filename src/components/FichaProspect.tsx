@@ -3,7 +3,7 @@ import { useSessao } from '../context/Sessao'
 import { msgErro, supabase } from '../lib/supabase'
 import { CANAIS, type Interacao } from '../lib/types'
 import { dataBR, dataHoraBR, formatarDoc } from '../lib/format'
-import { CATEGORIA_ROTULO, SITUACOES, SITUACAO_ROTULO, type Situacao } from '../lib/prospeccao'
+import { SITUACOES, SITUACAO_ROTULO, useSegmento, type Situacao } from '../lib/prospeccao'
 
 interface Prospect {
   id: string; org_id: string; estabelecimento_id: number | null; nome: string; documento: string | null; telefone: string | null
@@ -15,6 +15,7 @@ type InteracaoP = Interacao & { situacao_nova: Situacao | null }
 
 export default function FichaProspect({ id, onClose, onChange }: { id: string; onClose: () => void; onChange?: () => void }) {
   const { org, podeEditar, ehAdmin, toast } = useSessao()
+  const { rotulo } = useSegmento()
   const [p, setP] = useState<Prospect | null>(null)
   const [hist, setHist] = useState<InteracaoP[]>([])
   const [erro, setErro] = useState<string | null>(null)
@@ -80,7 +81,7 @@ export default function FichaProspect({ id, onClose, onChange }: { id: string; o
             {erro && <div className="alert alert-err">{erro}</div>}
             <dl className="kv">
               <dt>CNPJ</dt><dd className="mono">{formatarDoc(p.documento) || '—'}</dd>
-              <dt>Categoria</dt><dd>{CATEGORIA_ROTULO[p.categoria || ''] || '—'}</dd>
+              <dt>Categoria</dt><dd>{rotulo(p.categoria)}</dd>
               <dt>Telefone</dt><dd className="mono">{p.telefone || '—'}</dd>
               <dt>E-mail</dt><dd>{p.email || '—'}</dd>
               <dt>Endereço</dt><dd>{[p.logradouro, p.bairro].filter(Boolean).join(', ') || '—'}</dd>

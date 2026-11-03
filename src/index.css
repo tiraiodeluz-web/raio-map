@@ -185,6 +185,12 @@ table.t { width: 100%; border-collapse: collapse; }
 .timeline li { list-style: none; border-left: 2px solid var(--line-strong); padding: 2px 0 2px 12px; }
 .timeline ul { margin: 0; padding: 0; display: grid; gap: 10px; }
 
+/* teste grátis */
+.faixa-teste { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 8px 20px; background: #eaf2ff; border-bottom: 1px solid #cfe0fb; font-size: 13px; color: var(--ink); }
+.oferta { display: grid; gap: 10px; max-width: 46ch; padding: 16px 18px; border: 1px solid rgba(255,255,255,.14); border-radius: var(--r-md); background: rgba(255,255,255,.04); }
+.oferta b.preco { font: 700 26px/1.1 var(--f-display); color: #fff; }
+.oferta ul { margin: 0; padding-left: 18px; color: #b8c4da; font-size: 13.5px; display: grid; gap: 4px; }
+
 /* login */
 .auth { min-height: 100%; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr); }
 .auth-art { background: var(--navy-800); color: #dfe6f3; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 40px 48px; }

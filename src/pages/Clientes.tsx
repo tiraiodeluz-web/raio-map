@@ -6,12 +6,12 @@ import type { Cliente } from '../lib/types'
 import { dataBR, fmt } from '../lib/format'
 import { UF_NOMES } from '../lib/geo'
 import FichaCliente from '../components/FichaCliente'
+import { baixarCsv } from '../lib/csv'
 import { IcImportar } from '../components/Icones'
 
 const POR_PAGINA = 50
 type Linha = Pick<Cliente, 'id' | 'codigo_erp' | 'nome' | 'nome_fantasia' | 'cidade' | 'uf' | 'telefones' | 'contato' | 'situacao' | 'data_cadastro' | 'lat'>
 
-function csvCampo(v: unknown) { const s = Array.isArray(v) ? v.join(' / ') : v == null ? '' : String(v); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s }
 
 export default function Clientes() {
   const { org, podeEditar, toast } = useSessao()
@@ -85,10 +85,7 @@ export default function Clientes() {
         todos.push(...(data as unknown as Cliente[])); if (!data || data.length < 1000) break
       }
       const cols: (keyof Cliente)[] = ['codigo_erp', 'nome', 'nome_fantasia', 'documento', 'ie', 'telefones', 'contato', 'email', 'logradouro', 'bairro', 'cep', 'cidade', 'uf', 'situacao', 'data_cadastro', 'ultima_compra']
-      const csv = '﻿' + [cols.join(';'), ...todos.map((c) => cols.map((k) => csvCampo(c[k])).join(';'))].join('\n')
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
-      a.download = `clientes-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href)
+      baixarCsv(`clientes-${new Date().toISOString().slice(0, 10)}.csv`, cols, todos.map((c) => cols.map((k) => c[k])))
       toast(`${fmt(todos.length)} clientes exportados`)
     } catch (e) { toast(msgErro(e)) } finally { setExportando(false) }
   }

@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 export interface Estabelecimento {
   id: number
   cnpj: string | null
@@ -42,12 +44,18 @@ export const SITUACOES: [Situacao, string][] = [
 ]
 export const SITUACAO_ROTULO = Object.fromEntries(SITUACOES) as Record<Situacao, string>
 
-export const CATEGORIA_ROTULO: Record<string, string> = {
-  loja_religiosa: 'Loja de artigos religiosos',
-  livraria_religiosa: 'Livraria religiosa',
-  atacado_religioso: 'Atacado / distribuidora',
-  presentes_religiosos: 'Presentes e artesanato religioso',
-  instituicao_religiosa: 'Paróquia / instituição católica',
-  outro: 'Outro',
+// ---- Segmento desta instalação (public/config/segmento.json) ----
+export interface Segmento { nome: string; publico: string; categorias: { id: string; rotulo: string }[] }
+let segCache: Segmento | null = null
+let segP: Promise<Segmento> | null = null
+export const carregarSegmento = () =>
+  (segP ??= fetch('/config/segmento.json').then((r) => r.json()).then((j: Segmento) => (segCache = j)))
+
+/** Rótulos e textos do segmento configurado (categorias, público-alvo). */
+export function useSegmento() {
+  const [seg, setSeg] = useState<Segmento | null>(segCache)
+  useEffect(() => { if (!segCache) carregarSegmento().then(setSeg).catch(() => setSeg(null)) }, [])
+  const rotulo = (id: string | null | undefined) => (id ? seg?.categorias.find((c) => c.id === id)?.rotulo || 'Outro' : '—')
+  return { seg, rotulo, categorias: seg?.categorias || [] }
 }
 export const CONFIANCA_ROTULO: Record<string, string> = { alta: 'alta', media: 'média', baixa: 'baixa' }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { msgErro, supabase } from '../lib/supabase'
 import Marca from '../components/Marca'
+import { OFERTA } from '../lib/oferta'
 
 type Modo = 'entrar' | 'criar' | 'esqueci'
 
@@ -71,9 +72,22 @@ export default function Login() {
       <section className="auth-art">
         <ArteMapa />
         <Marca />
-        <div>
-          <h1>Onde estão seus clientes e onde estão os próximos.</h1>
-          <p>Mapa comercial e expansão territorial para distribuidoras, fabricantes e atacadistas de artigos religiosos.</p>
+        <div style={{ display: 'grid', gap: 22 }}>
+          <div>
+            <h1>Onde estão seus clientes e onde estão os próximos.</h1>
+            <p>Mapa comercial e prospecção B2B: sua carteira no mapa e novos clientes em todo o Brasil, a partir de dados públicos.</p>
+          </div>
+          <div className="oferta">
+            <span style={{ color: '#7cc4ff', fontWeight: 700 }}>Teste grátis por {OFERTA.diasTeste} dias, sem cartão</span>
+            <div><b className="preco">{OFERTA.preco}</b> <span style={{ color: '#b8c4da' }}>{OFERTA.precoDetalhe}</span></div>
+            <ul>
+              <li>Carteira de clientes no mapa, com busca por CEP e raio</li>
+              <li>Base nacional de potenciais clientes, atualizada todo mês</li>
+              <li>Funil de prospecção com histórico de abordagem</li>
+              <li>Equipe com acessos separados por papel</li>
+            </ul>
+            <span className="small" style={{ color: '#8597b8' }}>{OFERTA.custosCliente}</span>
+          </div>
         </div>
         <span className="small" style={{ color: '#8597b8' }}>Cada empresa vê apenas os próprios dados.</span>
       </section>
@@ -83,7 +97,7 @@ export default function Login() {
           {modo !== 'esqueci' && (
             <div className="auth-tabs" role="group" aria-label="Entrar ou criar conta">
               <button type="button" aria-pressed={modo === 'entrar'} onClick={() => setModo('entrar')}>Entrar</button>
-              <button type="button" aria-pressed={modo === 'criar'} onClick={() => setModo('criar')}>Criar conta</button>
+              <button type="button" aria-pressed={modo === 'criar'} onClick={() => setModo('criar')}>Testar grátis</button>
             </div>
           )}
           <label className="field"><span>E-mail</span>
@@ -97,7 +111,7 @@ export default function Login() {
           {erro && <div className="alert alert-err" role="alert">{erro}</div>}
           {ok && <div className="alert alert-ok" role="status">{ok}</div>}
           <button className="btn btn-primary" type="submit" disabled={enviando} style={{ height: 40 }}>
-            {modo === 'entrar' ? 'Entrar' : modo === 'criar' ? 'Criar conta' : 'Enviar link'}
+            {modo === 'entrar' ? 'Entrar' : modo === 'criar' ? `Começar teste grátis de ${OFERTA.diasTeste} dias` : 'Enviar link'}
           </button>
           {modo === 'entrar' && <button type="button" className="linkbtn" onClick={() => setModo('esqueci')}>Esqueci minha senha</button>}
           {modo === 'esqueci' && <button type="button" className="linkbtn" onClick={() => setModo('entrar')}>Voltar para entrar</button>}

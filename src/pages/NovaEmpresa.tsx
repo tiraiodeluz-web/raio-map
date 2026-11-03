@@ -23,16 +23,16 @@ export default function NovaEmpresa({ primeira = false }: { primeira?: boolean }
   return (
     <div className={primeira ? 'center-fill' : 'page'} style={{ padding: primeira ? 24 : undefined }}>
       <form onSubmit={criar} className="panel panel-b" style={{ width: 'min(440px,100%)', display: 'grid', gap: 14 }}>
-        <h2>{primeira ? 'Cadastre sua empresa' : 'Nova empresa'}</h2>
+        <h2>{primeira ? 'Comece seu teste grátis' : 'Nova empresa'}</h2>
         <p className="muted">
           {primeira
-            ? 'Sua conta ainda não participa de nenhuma empresa. Crie a sua para começar, ou peça a um admin para convidar ' + (session?.user.email || 'seu e-mail') + '.'
+            ? 'Cadastre sua empresa para começar o teste grátis de 7 dias. Se sua empresa já usa o Clyvo Map, peça a um admin para convidar ' + (session?.user.email || 'seu e-mail') + '.'
             : 'Você será o dono da nova empresa. Os dados dela ficam separados das outras.'}
         </p>
-        <label className="field"><span>Nome da empresa</span><input id="org-nome" className="input" required minLength={2} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Casa Sacra Distribuidora" /></label>
+        <label className="field"><span>Nome da empresa</span><input id="org-nome" className="input" required minLength={2} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Distribuidora Exemplo Ltda" /></label>
         <label className="field"><span>CNPJ (opcional)</span><input id="org-cnpj" className="input" value={cnpj} onChange={(e) => setCnpj(e.target.value)} inputMode="numeric" /></label>
         {erro && <div className="alert alert-err">{erro}</div>}
-        <button className="btn btn-primary" type="submit" disabled={enviando}>Criar empresa</button>
+        <button className="btn btn-primary" type="submit" disabled={enviando}>{primeira ? 'Começar teste de 7 dias' : 'Criar empresa'}</button>
         {primeira && <button type="button" className="linkbtn" onClick={() => supabase.auth.signOut()}>Sair</button>}
       </form>
     </div>

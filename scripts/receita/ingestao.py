@@ -1,6 +1,6 @@
 """Ingestão mensal da base aberta de CNPJ (Receita Federal) para a camada pública do Clyvo Map.
 
-Separa os estabelecimentos ATIVOS do segmento de artigos religiosos (lojas, livrarias, distribuidoras),
+Separa os estabelecimentos ATIVOS do segmento configurado em public/config/segmento.json,
 localiza cada um pelo município e grava em `public.estabelecimentos` (upsert por CNPJ).
 
 Variáveis de ambiente:
@@ -29,28 +29,31 @@ def norm(s):
     return re.sub(r'\s+', ' ', re.sub(r'[^A-Z0-9 ]', ' ', s)).strip()
 
 
-# ---------- regras do segmento ----------
-FORTES = ['ARTIGOS RELIGIOSOS', 'ART RELIGIOSOS', 'ARTS RELIGIOSOS', 'ARTIGO RELIGIOSO', 'ARTIGOS CATOLICOS', 'ARTIGOS SACROS',
-          'ARTE SACRA', 'ARTES SACRAS', 'ARTIGOS LITURGICOS', 'PARAMENTOS', 'LIVRARIA CATOLICA', 'LIVRARIA RELIGIOSA',
-          'LIVRARIA EVANGELICA', 'ARTIGOS EVANGELICOS', 'ARTIGOS GOSPEL', 'IMAGENS SACRAS', 'IMAGENS RELIGIOSAS',
-          'PRESENTES RELIGIOSOS', 'LOJA CATOLICA', 'LOJA RELIGIOSA']
-FRACOS = re.compile(r'\b(RELIGIOS[OA]S?|CATOLIC[OA]S?|SACR[OA]S?|LITURGIC[OA]S?|GOSPEL|EVANGELIC[OA]S?|TERCOS?|DEVOCIONAIS?)\b')
-EXCLUIR = re.compile(r'\b(IGREJA|PAROQUIA|DIOCESE|ARQUIDIOCESE|MITRA|CONGREGACAO|ASSEMBLEIA|MINISTERIO|TEMPLO|COLEGIO|ESCOLA|'
-                     r'FACULDADE|HOSPITAL|CEMITERIO|FUNERARIA|RADIO|TELEVISAO|SEMINARIO|CONVENTO|MOSTEIRO|ASSOCIACAO|FUNDACAO|INSTITUTO)\b')
-# CNAEs onde artigos religiosos costumam estar (varejo e atacado)
-CNAES_SEGMENTO = {'4789099', '4789001', '4761001', '4649499', '4693100', '4647801'}
-CNAE_INSTITUICAO = '9491000'
-# nomes de devoção: só entram com CNAE do comércio E confirmação da IA
-DEVOCAO = re.compile(r'\b(SAO|SANTA|SANTO) [A-Z]{3,}|\b(NOSSA SENHORA|N SRA|NSA SRA|SAGRAD[OA] CORACAO|SAGRADA FAMILIA|DIVIN[OA]|FATIMA|APARECIDA|'
-                     r'PROVIDENCIA|ARCANJO|ESPIRITO SANTO|JUDAS TADEU|MAE DE DEUS|MAE RAINHA|PIETA|AVE MARIA|MILAGRES?|BENCAOS?|GRACAS|IMACULADA|'
-                     r'MENINO JESUS|JESUS|CRISTO|EMANUEL|ARCA DE NOE|MANA)\b')
-# instituições católicas (compradoras diretas de artigos religiosos)
-CATOLICA_FORTE = re.compile(r'\b(PAROQUIA|MITRA|DIOCESE|DIOCESANA|ARQUIDIOCESE|ARQUIDIOCESANA|PRELAZIA|SANTUARIO|CATEDRAL|BASILICA|IGREJA CATOLICA)\b')
-CATOLICA_FRACA = re.compile(r'\b(CAPELA|CONVENTO|MOSTEIRO|IRMANDADE|CONFRARIA|SEMINARIO|RENOVACAO CARISMATICA|COMUNIDADE CATOLICA|CONGREGACAO|'
-                            r'PASTORAL|ORDEM TERCEIRA|FRANCISCAN[OA]S?|SALESIAN[OA]S?|BENEDITIN[OA]S?|CARMELITAS?|VICENTIN[OA]S?)\b')
-OUTRAS_RELIGIOES = re.compile(r'\b(EVANGELIC[OA]|ASSEMBLEIA|BATISTA|PRESBITERIANA|ADVENTISTA|PENTECOSTAL|UNIVERSAL|QUADRANGULAR|LUTERANA|'
-                              r'METODISTA|ESPIRITA|UMBANDA|CANDOMBLE|MACONICA|ANGLICANA|MORMON|TESTEMUNHAS|CONGREGACAO CRISTA|DEUS E AMOR|MUNDIAL)\b')
+# ---------- regras do segmento (vêm de public/config/segmento.json) ----------
+CONFIG = json.load(open(os.path.join(os.path.dirname(__file__), '..', '..', 'public', 'config', 'segmento.json'), encoding='utf-8'))
+
+
+def _rx(lista):
+    """Lista de termos/expressões → uma regex de palavra inteira (ou None se vazia)."""
+    return re.compile(r'\b(' + '|'.join(lista) + r')\b') if lista else None
+
+
+FORTES = [norm(x) for x in CONFIG.get('palavras_fortes', [])]
+FRACOS = _rx(CONFIG.get('palavras_fracas', []))
+EXCLUIR = _rx(CONFIG.get('excluir', []))
+CNAES_SEGMENTO = set(CONFIG.get('cnaes_comercio', []))
+AMBIGUOS = _rx(CONFIG.get('nomes_ambiguos', []))
+INST = CONFIG.get('instituicoes') or {}
+INST_ATIVO = bool(INST.get('ativo'))
+CNAES_INST = set(INST.get('cnaes', [])) if INST_ATIVO else set()
+INST_FORTE, INST_FRACA, INST_EXCLUIR = _rx(INST.get('fortes', [])), _rx(INST.get('fracas', [])), _rx(INST.get('excluir', []))
+CATEGORIAS = CONFIG.get('categorias', [])
+IDS_CATEGORIA = {c['id'] for c in CATEGORIAS}
 PORTE = {'01': 'Microempresa', '03': 'Empresa de pequeno porte', '05': 'Demais'}
+
+
+def _tem(rx, texto):
+    return rx.search(texto) if rx else None
 
 
 def avaliar(nome_fantasia, razao, cnae_p, cnaes_s):
@@ -60,40 +63,41 @@ def avaliar(nome_fantasia, razao, cnae_p, cnaes_s):
     texto = nf + ' | ' + rs
     cnaes = {cnae_p, *cnaes_s}
     seg = bool(cnaes & CNAES_SEGMENTO)
-    if cnae_p == CNAE_INSTITUICAO and not OUTRAS_RELIGIOES.search(texto):
-        m = CATOLICA_FORTE.search(texto)
+    if cnae_p in CNAES_INST and not _tem(INST_EXCLUIR, texto):
+        m = _tem(INST_FORTE, texto)
         if m:
-            return True, 'alta', f'Instituição católica ("{m.group(0).lower()}")'
-        m = CATOLICA_FRACA.search(texto)
+            return True, 'alta', f'Instituição do segmento ("{m.group(0).lower()}")'
+        m = _tem(INST_FRACA, texto)
         if m:
-            return True, 'media', f'Instituição católica provável ("{m.group(0).lower()}")'
+            return True, 'media', f'Instituição provável do segmento ("{m.group(0).lower()}")'
     forte = next((f for f in FORTES if f in texto), None)
     if forte:
         return True, ('alta' if seg else 'media'), f'Nome contém "{forte.lower()}"' + (' e CNAE do comércio' if seg else '')
-    m = FRACOS.search(texto)
-    if m and not EXCLUIR.search(texto):
+    m = _tem(FRACOS, texto)
+    if m and not _tem(EXCLUIR, texto):
         if seg:
             return True, 'media', f'Nome contém "{m.group(0).lower()}" e CNAE do comércio ({cnae_p})'
-        if cnae_p == CNAE_INSTITUICAO and re.search(r'\b(LOJA|LIVRARIA|ARTIGOS)\b', texto):
-            return True, 'baixa', f'Instituição religiosa com "loja/livraria" no nome'
-    if seg and not EXCLUIR.search(texto):
-        m = DEVOCAO.search(texto)
+        if cnae_p in CNAES_INST and re.search(r'\b(LOJA|LIVRARIA|ARTIGOS)\b', texto):
+            return True, 'baixa', 'Instituição com "loja/livraria" no nome'
+    if seg and not _tem(EXCLUIR, texto):
+        m = _tem(AMBIGUOS, texto)
         if m:
-            return 'ia', 'baixa', f'Nome de devoção ("{m.group(0).lower()}") e CNAE do comércio, confirmado pela IA'
+            return 'ia', 'baixa', f'Nome ambíguo ("{m.group(0).lower()}") e CNAE do comércio, confirmado pela IA'
     return False, None, None
 
 
 def categoria(nf, rs, cnae_p):
+    """Primeira categoria da configuração que bater (por CNAE, prefixo de CNAE ou palavra no nome)."""
     t = norm(nf) + ' ' + norm(rs)
-    if cnae_p == CNAE_INSTITUICAO:
-        return 'instituicao_religiosa'
-    if 'LIVRARIA' in t or 'LIVROS' in t or cnae_p == '4761001':
-        return 'livraria_religiosa'
-    if cnae_p.startswith('46') or re.search(r'\b(DISTRIBUIDORA|ATACADO|ATACADISTA|IMPORTADORA)\b', t):
-        return 'atacado_religioso'
-    if re.search(r'\b(PRESENTES?|ARTESANATO|SOUVENIR)\b', t) or cnae_p == '4789001':
-        return 'presentes_religiosos'
-    return 'loja_religiosa'
+    padrao = None
+    for c in CATEGORIAS:
+        if c.get('padrao'):
+            padrao = c['id']
+            continue
+        if cnae_p in c.get('cnaes', []) or any(cnae_p.startswith(px) for px in c.get('cnae_prefixos', [])) \
+                or any(re.search(r'\b' + w + r'\b', t) for w in c.get('palavras', [])):
+            return c['id']
+    return padrao or 'outro'
 
 
 def sem_cpf(razao):
@@ -177,14 +181,14 @@ def enviar(linhas):
 
 
 # ---------- classificação com IA (Claude) ----------
-PROMPT_IA = """Você ajuda uma distribuidora de artigos religiosos a encontrar compradores (lojas, livrarias e distribuidoras que revendem artigos religiosos: imagens, terços, bíblias, paramentos, presentes religiosos).
-Abaixo há estabelecimentos tirados da base pública de CNPJ. Para cada um, avalie SÓ com o que está escrito (nome fantasia, razão social, CNAE) se ele provavelmente revende artigos religiosos.
+PROMPT_IA = CONFIG.get('descricao_ia', 'Você ajuda uma empresa B2B a encontrar compradores.') + """
+Abaixo há estabelecimentos tirados da base pública de CNPJ. Para cada um, avalie SÓ com o que está escrito (nome fantasia, razão social, CNAE) se ele provavelmente é um comprador desse segmento.
 Não invente informações. Se não der para saber, diga isso com confiança baixa.
 Responda APENAS com um array JSON, um objeto por estabelecimento, nesta forma:
-[{"cnpj": "...", "e_do_segmento": true|false, "confianca": 0.0-1.0, "categoria": "loja_religiosa|livraria_religiosa|atacado_religioso|presentes_religiosos|instituicao_religiosa|outro", "motivo": "uma frase curta em português"}]
+[{"cnpj": "...", "e_do_segmento": true|false, "confianca": 0.0-1.0, "categoria": "CATEGORIAS|outro", "motivo": "uma frase curta em português"}]
 
 Estabelecimentos:
-"""
+""".replace('CATEGORIAS', '|'.join(c['id'] for c in CATEGORIAS))
 
 
 def classificar_ia(linhas):
@@ -249,7 +253,7 @@ def main():
             cnae_p, cnaes_s = r[11], [c for c in r[12].split(',') if c]
             nf = r[4]
             nfn = norm(nf)
-            pode = bool({cnae_p, *cnaes_s} & CNAES_SEGMENTO) or cnae_p == CNAE_INSTITUICAO or any(f in nfn for f in FORTES) or FRACOS.search(nfn)
+            pode = bool({cnae_p, *cnaes_s} & CNAES_SEGMENTO) or cnae_p in CNAES_INST or any(f in nfn for f in FORTES) or bool(_tem(FRACOS, nfn))
             if not pode:
                 continue
             cnpj = r[0] + r[1] + r[2]
@@ -313,13 +317,13 @@ def main():
                 if not lote or len(lote) < 1000:
                     break
                 de += 1000
-    devocao = [l for l in linhas if l['_ia']]
+    devocao = [l for l in linhas if l['_ia']]  # nomes ambíguos
     linhas = [l for l in linhas if not l['_ia']] + [l for l in devocao if l['cnpj'] in ja_avaliados]
     fila_devocao = [l for l in devocao if l['cnpj'] not in ja_avaliados and l['cnpj'] not in descartados]
-    duvidosos = [l for l in linhas if l['confiabilidade'] != 'alta' and l['cnpj'] not in ja_avaliados and l['categoria'] != 'instituicao_religiosa']
+    duvidosos = [l for l in linhas if l['confiabilidade'] != 'alta' and l['cnpj'] not in ja_avaliados and l['categoria'] != INST.get('categoria')]
     limite = int(os.environ.get('IA_MAX', '8000'))
     fila = (duvidosos + sorted(fila_devocao, key=lambda l: l['cnae_principal'] not in ('4789099', '4789001')))[:limite]
-    print(f'IA: {len(duvidosos)} duvidosos + {len(fila_devocao)} nomes de devoção para avaliar; nesta execução: {len(fila) if usar_ia else 0}', flush=True)
+    print(f'IA: {len(duvidosos)} duvidosos + {len(fila_devocao)} nomes ambíguos para avaliar; nesta execução: {len(fila) if usar_ia else 0}', flush=True)
     ia = classificar_ia(fila) if usar_ia else {}
     novos_descartes = []
     for l in fila:
@@ -340,7 +344,7 @@ def main():
             l['confiabilidade'] = 'baixa'
         elif sim and conf_ia >= 0.85 and l['cnae_principal'] in CNAES_SEGMENTO:
             l['confiabilidade'] = 'alta'
-        if a.get('categoria') in ('loja_religiosa', 'livraria_religiosa', 'atacado_religioso', 'presentes_religiosos', 'instituicao_religiosa'):
+        if a.get('categoria') in IDS_CATEGORIA:
             l['categoria'] = a['categoria']
     for l in linhas:
         l.pop('_ia', None)
@@ -348,8 +352,8 @@ def main():
     # Resumo (fica como artefato da execução)
     resumo = {
         'fonte': origem, 'mes': mes, 'lidos': lidos, 'ativos': ativos, 'candidatos': len(cand), 'selecionados': len(linhas),
-        'sem_municipio': sem_local, 'avaliados_ia': len(ia), 'nomes_devocao_na_fila': len(fila_devocao),
-        'confirmados_por_ia': sum(1 for l in linhas if 'ia_avaliacao' in l and 'devoção' in (l['criterio_inclusao'] or '')),
+        'sem_municipio': sem_local, 'avaliados_ia': len(ia), 'nomes_ambiguos_na_fila': len(fila_devocao),
+        'confirmados_por_ia': sum(1 for l in linhas if 'ia_avaliacao' in l and 'ambíguo' in (l['criterio_inclusao'] or '')),
         'descartados_ia': len(novos_descartes), 'duracao_s': round(time.time() - t0),
         'por_confiabilidade': Counter(l['confiabilidade'] for l in linhas), 'por_categoria': Counter(l['categoria'] for l in linhas),
         'por_uf': dict(Counter(l['uf'] for l in linhas).most_common()),

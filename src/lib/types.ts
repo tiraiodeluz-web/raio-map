@@ -6,6 +6,7 @@ export interface Organizacao {
   cnpj: string | null
   plano_id: string
   assinatura_status: string
+  teste_ate: string | null
   config: Record<string, unknown>
   criado_em: string
 }

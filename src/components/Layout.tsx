@@ -4,6 +4,7 @@ import { useSessao } from '../context/Sessao'
 import { supabase } from '../lib/supabase'
 import { PAPEL_ROTULO } from '../lib/types'
 import Marca from './Marca'
+import { diasDeTeste, OFERTA } from '../lib/oferta'
 import { IcClientes, IcConfig, IcMapa, IcPainel, IcProspeccao } from './Icones'
 
 const ITENS = [
@@ -19,6 +20,7 @@ export default function Layout() {
   const [aberto, setAberto] = useState(false)
   const loc = useLocation()
   const ehMapa = loc.pathname.startsWith('/mapa')
+  const dias = diasDeTeste(org)
 
   return (
     <div className="app">
@@ -49,8 +51,26 @@ export default function Layout() {
           {aberto && <button type="button" onClick={() => setAberto(false)}>Fechar menu</button>}
         </div>
       </aside>
-      <main className="main" style={ehMapa ? { overflow: 'hidden' } : undefined}>
-        <Outlet />
+      <main className="main" style={ehMapa && dias !== 0 ? { overflow: 'hidden', display: 'flex', flexDirection: 'column' } : undefined}>
+        {dias !== null && dias > 0 && (
+          <div className="faixa-teste" role="status">
+            <span><b>Teste grátis:</b> {dias === 1 ? 'último dia' : `faltam ${dias} dias`}. Depois, licença por {OFERTA.preco}, {OFERTA.precoDetalhe}.</span>
+            <a className="btn btn-sm btn-primary" href={OFERTA.contato} target="_blank" rel="noopener">Contratar</a>
+          </div>
+        )}
+        {dias === 0 ? (
+          <div className="page" style={{ maxWidth: 640 }}>
+            <section className="panel panel-b" style={{ display: 'grid', gap: 14, marginTop: 40 }}>
+              <h1>Seu teste grátis terminou</h1>
+              <p>Os {OFERTA.diasTeste} dias de teste da empresa {org?.nome} acabaram. Seus clientes, prospects e anotações continuam guardados e voltam a aparecer assim que a licença for ativada.</p>
+              <p><b>Licença do Clyvo Map: {OFERTA.preco}</b>, {OFERTA.precoDetalhe}. {OFERTA.custosCliente}</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <a className="btn btn-primary" href={OFERTA.contato} target="_blank" rel="noopener">Falar com a Clyvo</a>
+                <button className="btn" type="button" onClick={() => supabase.auth.signOut()}>Sair</button>
+              </div>
+            </section>
+          </div>
+        ) : <div style={ehMapa ? { flex: 1, minHeight: 0 } : undefined}><Outlet /></div>}
       </main>
     </div>
   )

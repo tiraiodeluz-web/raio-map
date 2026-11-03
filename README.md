@@ -1,6 +1,6 @@
 # Clyvo Map
 
-Plataforma de inteligência comercial e expansão territorial para distribuidoras, fabricantes e atacadistas de artigos religiosos.
+Plataforma de inteligência comercial e expansão territorial para empresas B2B. O segmento de cada instalação (o que o robô procura na Receita e como as categorias aparecem) fica em `public/config/segmento.json`.
 
 ## O que já funciona (Etapa 2)
 
