@@ -47,7 +47,7 @@ export const CATEGORIA_ROTULO: Record<string, string> = {
   livraria_religiosa: 'Livraria religiosa',
   atacado_religioso: 'Atacado / distribuidora',
   presentes_religiosos: 'Presentes e artesanato religioso',
-  instituicao_religiosa: 'Instituição religiosa com loja',
+  instituicao_religiosa: 'Paróquia / instituição católica',
   outro: 'Outro',
 }
 export const CONFIANCA_ROTULO: Record<string, string> = { alta: 'alta', media: 'média', baixa: 'baixa' }

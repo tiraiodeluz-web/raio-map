@@ -7,7 +7,7 @@ Variáveis de ambiente:
   MODO=teste | gravar          teste: só gera o resumo em saida/; gravar: também envia ao Supabase
   SUPABASE_URL, SUPABASE_SERVICE_KEY   obrigatórias no modo gravar (chave secreta, nunca no app)
   ANTHROPIC_API_KEY            opcional: classifica com IA os achados de confiabilidade média/baixa
-  IA_MAX=3000                  limite de estabelecimentos avaliados pela IA por execução
+  IA_MAX=8000                  limite de estabelecimentos avaliados pela IA por execução
   ARQUIVOS=10                  quantos arquivos Estabelecimentos/Empresas ler (0..9); use menos para testar
 """
 import csv, gzip, io, json, os, re, sys, time, unicodedata, urllib.error, urllib.request, zipfile
@@ -40,15 +40,33 @@ EXCLUIR = re.compile(r'\b(IGREJA|PAROQUIA|DIOCESE|ARQUIDIOCESE|MITRA|CONGREGACAO
 # CNAEs onde artigos religiosos costumam estar (varejo e atacado)
 CNAES_SEGMENTO = {'4789099', '4789001', '4761001', '4649499', '4693100', '4647801'}
 CNAE_INSTITUICAO = '9491000'
+# nomes de devoção: só entram com CNAE do comércio E confirmação da IA
+DEVOCAO = re.compile(r'\b(SAO|SANTA|SANTO) [A-Z]{3,}|\b(NOSSA SENHORA|N SRA|NSA SRA|SAGRAD[OA] CORACAO|SAGRADA FAMILIA|DIVIN[OA]|FATIMA|APARECIDA|'
+                     r'PROVIDENCIA|ARCANJO|ESPIRITO SANTO|JUDAS TADEU|MAE DE DEUS|MAE RAINHA|PIETA|AVE MARIA|MILAGRES?|BENCAOS?|GRACAS|IMACULADA|'
+                     r'MENINO JESUS|JESUS|CRISTO|EMANUEL|ARCA DE NOE|MANA)\b')
+# instituições católicas (compradoras diretas de artigos religiosos)
+CATOLICA_FORTE = re.compile(r'\b(PAROQUIA|MITRA|DIOCESE|DIOCESANA|ARQUIDIOCESE|ARQUIDIOCESANA|PRELAZIA|SANTUARIO|CATEDRAL|BASILICA|IGREJA CATOLICA)\b')
+CATOLICA_FRACA = re.compile(r'\b(CAPELA|CONVENTO|MOSTEIRO|IRMANDADE|CONFRARIA|SEMINARIO|RENOVACAO CARISMATICA|COMUNIDADE CATOLICA|CONGREGACAO|'
+                            r'PASTORAL|ORDEM TERCEIRA|FRANCISCAN[OA]S?|SALESIAN[OA]S?|BENEDITIN[OA]S?|CARMELITAS?|VICENTIN[OA]S?)\b')
+OUTRAS_RELIGIOES = re.compile(r'\b(EVANGELIC[OA]|ASSEMBLEIA|BATISTA|PRESBITERIANA|ADVENTISTA|PENTECOSTAL|UNIVERSAL|QUADRANGULAR|LUTERANA|'
+                              r'METODISTA|ESPIRITA|UMBANDA|CANDOMBLE|MACONICA|ANGLICANA|MORMON|TESTEMUNHAS|CONGREGACAO CRISTA|DEUS E AMOR|MUNDIAL)\b')
 PORTE = {'01': 'Microempresa', '03': 'Empresa de pequeno porte', '05': 'Demais'}
 
 
 def avaliar(nome_fantasia, razao, cnae_p, cnaes_s):
-    """Devolve (incluir, confiabilidade, criterio) a partir do nome e dos CNAEs."""
+    """Devolve (incluir, confiabilidade, criterio) a partir do nome e dos CNAEs.
+    incluir = 'ia' quando o estabelecimento só entra se a IA confirmar."""
     nf, rs = norm(nome_fantasia), norm(razao)
     texto = nf + ' | ' + rs
     cnaes = {cnae_p, *cnaes_s}
     seg = bool(cnaes & CNAES_SEGMENTO)
+    if cnae_p == CNAE_INSTITUICAO and not OUTRAS_RELIGIOES.search(texto):
+        m = CATOLICA_FORTE.search(texto)
+        if m:
+            return True, 'alta', f'Instituição católica ("{m.group(0).lower()}")'
+        m = CATOLICA_FRACA.search(texto)
+        if m:
+            return True, 'media', f'Instituição católica provável ("{m.group(0).lower()}")'
     forte = next((f for f in FORTES if f in texto), None)
     if forte:
         return True, ('alta' if seg else 'media'), f'Nome contém "{forte.lower()}"' + (' e CNAE do comércio' if seg else '')
@@ -58,6 +76,10 @@ def avaliar(nome_fantasia, razao, cnae_p, cnaes_s):
             return True, 'media', f'Nome contém "{m.group(0).lower()}" e CNAE do comércio ({cnae_p})'
         if cnae_p == CNAE_INSTITUICAO and re.search(r'\b(LOJA|LIVRARIA|ARTIGOS)\b', texto):
             return True, 'baixa', f'Instituição religiosa com "loja/livraria" no nome'
+    if seg and not EXCLUIR.search(texto):
+        m = DEVOCAO.search(texto)
+        if m:
+            return 'ia', 'baixa', f'Nome de devoção ("{m.group(0).lower()}") e CNAE do comércio, confirmado pela IA'
     return False, None, None
 
 
@@ -255,6 +277,7 @@ def main():
         ok, conf, crit = avaliar(c['nf'], rs, c['cp'], c['cs'])
         if not ok:
             continue
+        precisa_ia = ok == 'ia'
         loc = localizar(ibge, rfb, apelidos, c['mun'], c['uf'])
         if not loc:
             sem_local += 1
@@ -269,38 +292,60 @@ def main():
             'categoria': categoria(c['nf'], rs, c['cp']), 'confiabilidade': conf, 'criterio_inclusao': crit,
             'fonte_principal': origem, 'mes_referencia': mes, 'porte': porte, 'matriz': c['mf'] == '1',
             'atualizado_em': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            '_ia': precisa_ia,
         })
     print(f'Selecionados: {len(linhas):,} (sem município reconhecido: {sem_local})', flush=True)
 
-    # Passo 4: IA nos casos duvidosos (só os que ainda não foram avaliados)
-    ja_avaliados = set()
-    if MODO == 'gravar' and os.environ.get('ANTHROPIC_API_KEY'):
-        de = 0
-        while True:
-            lote = supa('GET', f'/rest/v1/estabelecimentos?select=cnpj&ia_avaliado_em=not.is.null&offset={de}&limit=1000', prefer='')
-            ja_avaliados |= {x['cnpj'] for x in lote or []}
-            if not lote or len(lote) < 1000:
-                break
-            de += 1000
-    duvidosos = [l for l in linhas if l['confiabilidade'] != 'alta' and l['cnpj'] not in ja_avaliados][: int(os.environ.get('IA_MAX', '3000'))]
-    ia = classificar_ia(duvidosos)
-    for l in linhas:
+    # Passo 4: IA. Casos duvidosos (média/baixa) ganham uma avaliação; nomes de devoção só entram se a IA confirmar.
+    ja_avaliados, descartados = set(), set()
+    usar_ia = MODO == 'gravar' and bool(os.environ.get('ANTHROPIC_API_KEY'))
+    if usar_ia:
+        for tabela, destino in (('estabelecimentos?select=cnpj&ia_avaliado_em=not.is.null', ja_avaliados), ('estabelecimentos_descartados?select=cnpj', descartados)):
+            de = 0
+            while True:
+                lote = supa('GET', f'/rest/v1/{tabela}&offset={de}&limit=1000' if '?' in tabela else f'/rest/v1/{tabela}?offset={de}&limit=1000', prefer='')
+                destino |= {x['cnpj'] for x in lote or []}
+                if not lote or len(lote) < 1000:
+                    break
+                de += 1000
+    devocao = [l for l in linhas if l['_ia']]
+    linhas = [l for l in linhas if not l['_ia']] + [l for l in devocao if l['cnpj'] in ja_avaliados]
+    fila_devocao = [l for l in devocao if l['cnpj'] not in ja_avaliados and l['cnpj'] not in descartados]
+    duvidosos = [l for l in linhas if l['confiabilidade'] != 'alta' and l['cnpj'] not in ja_avaliados and l['categoria'] != 'instituicao_religiosa']
+    limite = int(os.environ.get('IA_MAX', '8000'))
+    fila = (duvidosos + sorted(fila_devocao, key=lambda l: l['cnae_principal'] not in ('4789099', '4789001')))[:limite]
+    print(f'IA: {len(duvidosos)} duvidosos + {len(fila_devocao)} nomes de devoção para avaliar; nesta execução: {len(fila) if usar_ia else 0}', flush=True)
+    ia = classificar_ia(fila) if usar_ia else {}
+    novos_descartes = []
+    for l in fila:
         a = ia.get(l['cnpj'])
         if not a:
             continue
+        sim, conf_ia = a.get('e_do_segmento'), (a.get('confianca') or 0)
         l['ia_avaliacao'] = {k: a.get(k) for k in ('e_do_segmento', 'confianca', 'categoria', 'motivo')}
         l['ia_avaliado_em'] = l['atualizado_em']
-        if a.get('e_do_segmento') is False and (a.get('confianca') or 0) >= 0.7:
+        if l['_ia']:
+            if sim and conf_ia >= 0.6:
+                l['confiabilidade'] = 'media' if conf_ia >= 0.8 else 'baixa'
+                linhas.append(l)
+            else:
+                novos_descartes.append({'cnpj': l['cnpj'], 'motivo': (a.get('motivo') or '')[:300]})
+            continue
+        if sim is False and conf_ia >= 0.7:
             l['confiabilidade'] = 'baixa'
-        elif a.get('e_do_segmento') and (a.get('confianca') or 0) >= 0.85 and l['cnae_principal'] in CNAES_SEGMENTO:
+        elif sim and conf_ia >= 0.85 and l['cnae_principal'] in CNAES_SEGMENTO:
             l['confiabilidade'] = 'alta'
         if a.get('categoria') in ('loja_religiosa', 'livraria_religiosa', 'atacado_religioso', 'presentes_religiosos', 'instituicao_religiosa'):
             l['categoria'] = a['categoria']
+    for l in linhas:
+        l.pop('_ia', None)
 
     # Resumo (fica como artefato da execução)
     resumo = {
         'fonte': origem, 'mes': mes, 'lidos': lidos, 'ativos': ativos, 'candidatos': len(cand), 'selecionados': len(linhas),
-        'sem_municipio': sem_local, 'avaliados_ia': len(ia), 'duracao_s': round(time.time() - t0),
+        'sem_municipio': sem_local, 'avaliados_ia': len(ia), 'nomes_devocao_na_fila': len(fila_devocao),
+        'confirmados_por_ia': sum(1 for l in linhas if 'ia_avaliacao' in l and 'devoção' in (l['criterio_inclusao'] or '')),
+        'descartados_ia': len(novos_descartes), 'duracao_s': round(time.time() - t0),
         'por_confiabilidade': Counter(l['confiabilidade'] for l in linhas), 'por_categoria': Counter(l['categoria'] for l in linhas),
         'por_uf': dict(Counter(l['uf'] for l in linhas).most_common()),
         'amostra': [{k: l[k] for k in ('cnpj', 'nome_fantasia', 'razao_social', 'uf', 'cnae_principal', 'categoria', 'confiabilidade', 'criterio_inclusao')}
@@ -317,6 +362,8 @@ def main():
         com_ia = [l for l in linhas if 'ia_avaliacao' in l]
         sem_ia = [l for l in linhas if 'ia_avaliacao' not in l]
         enviar(sem_ia); enviar(com_ia)
+        for i in range(0, len(novos_descartes), 1000):
+            supa('POST', '/rest/v1/estabelecimentos_descartados?on_conflict=cnpj', novos_descartes[i:i + 1000], 'resolution=merge-duplicates,return=minimal')
         print('Gravação concluída.')
 
 
