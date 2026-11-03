@@ -191,6 +191,10 @@ Estabelecimentos:
 """.replace('CATEGORIAS', '|'.join(c['id'] for c in CATEGORIAS))
 
 
+USO_IA = {'chamadas': 0, 'entrada': 0, 'saida': 0, 'parou_por_erro': False}
+MODELO_IA = 'claude-haiku-5-5'
+
+
 def classificar_ia(linhas):
     key = os.environ.get('ANTHROPIC_API_KEY')
     if not key or not linhas:
@@ -199,13 +203,17 @@ def classificar_ia(linhas):
     for i in range(0, len(linhas), 40):
         lote = linhas[i:i + 40]
         texto = '\n'.join(f'- cnpj {l["cnpj"]} | fantasia: {l["nome_fantasia"] or "-"} | razão: {l["razao_social"] or "-"} | CNAE: {l["cnae_principal"]}' for l in lote)
-        corpo = {'model': 'claude-haiku-5-5', 'max_tokens': 6000, 'messages': [{'role': 'user', 'content': PROMPT_IA + texto}]}
+        corpo = {'model': MODELO_IA, 'max_tokens': 6000, 'messages': [{'role': 'user', 'content': PROMPT_IA + texto}]}
         for tentativa in range(5):
             try:
                 req = urllib.request.Request('https://api.anthropic.com/v1/messages', data=json.dumps(corpo).encode(), method='POST',
                                              headers={'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json'})
                 with urllib.request.urlopen(req, timeout=180) as r:
                     resp = json.loads(r.read())
+                u = resp.get('usage') or {}
+                USO_IA['chamadas'] += 1
+                USO_IA['entrada'] += u.get('input_tokens', 0)
+                USO_IA['saida'] += u.get('output_tokens', 0)
                 txt = ''.join(b.get('text', '') for b in resp.get('content', []))
                 arr = json.loads(txt[txt.index('['): txt.rindex(']') + 1])
                 for a in arr:
@@ -219,6 +227,7 @@ def classificar_ia(linhas):
                 print('  IA: erro', e.code, corpo_erro)
                 if e.code in (400, 401, 403) and (b'credit' in corpo_erro or b'authentication' in corpo_erro or b'permission' in corpo_erro):
                     print('  IA desligada nesta execução: confira a chave e o crédito em console.anthropic.com', flush=True)
+                    USO_IA['parou_por_erro'] = True
                     return out
                 break
             except Exception as e:  # noqa: BLE001
@@ -373,6 +382,14 @@ def main():
         enviar(sem_ia); enviar(com_ia)
         for i in range(0, len(novos_descartes), 1000):
             supa('POST', '/rest/v1/estabelecimentos_descartados?on_conflict=cnpj', novos_descartes[i:i + 1000], 'resolution=merge-duplicates,return=minimal')
+        # registro de uso (aba Uso do app); falha aqui não deve derrubar a carga
+        try:
+            supa('POST', '/rest/v1/execucoes_robo', [{
+                'modo': MODO, 'mes_referencia': mes, 'selecionados': len(linhas), 'ia_avaliados': len(ia), 'ia_chamadas': USO_IA['chamadas'],
+                'tokens_entrada': USO_IA['entrada'], 'tokens_saida': USO_IA['saida'], 'modelo': MODELO_IA if USO_IA['chamadas'] else None,
+                'ia_parou_por_erro': USO_IA['parou_por_erro'], 'duracao_s': round(time.time() - t0)}], 'return=minimal')
+        except Exception as e:  # noqa: BLE001
+            print('Aviso: não consegui registrar o uso da execução:', repr(e)[:200], flush=True)
         print('Gravação concluída.')
 
 

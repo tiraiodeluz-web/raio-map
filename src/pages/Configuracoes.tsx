@@ -132,34 +132,116 @@ function Membros() {
   )
 }
 
-function PlanoUso() {
-  const { org } = useSessao()
+// Preços de referência (USD por milhão de tokens, prompts até 100 mil tokens) e do Google Places.
+// São estimativas: confira os valores atuais na Anthropic e no Google Cloud.
+const IA_USD_ENTRADA = 0.1
+const IA_USD_SAIDA = 0.5
+const GOOGLE_GRATIS_MES = 1000
+const GOOGLE_USD_MIL = 35
+
+interface Execucao { id: number; executado_em: string; ia_avaliados: number; ia_chamadas: number; tokens_entrada: number; tokens_saida: number; ia_parou_por_erro: boolean; mes_referencia: string | null }
+const usd = (n: number) => 'US$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const mesRotulo = (m: string) => new Date(m + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+
+function Uso() {
+  const { org, ehAdmin } = useSessao()
   const [plano, setPlano] = useState<Plano | null>(null)
-  const [uso, setUso] = useState<{ consultas: number; exportacoes: number } | null>(null)
-  const [nMembros, setNMembros] = useState(0)
+  const [meses, setMeses] = useState<{ mes: string; consultas: number; exportacoes: number }[]>([])
+  const [cont, setCont] = useState<Record<string, number>>({})
+  const [execs, setExecs] = useState<Execucao[]>([])
+  const [acoes, setAcoes] = useState<[string, number][]>([])
   useEffect(() => {
     if (!org) return
-    const mes = new Date().toISOString().slice(0, 7) + '-01'
+    const inicioMes = new Date().toISOString().slice(0, 7) + '-01'
+    const conta = (tabela: string, filtro?: (q: any) => any) => // eslint-disable-line @typescript-eslint/no-explicit-any
+      (async () => { let q: any = supabase.from(tabela).select('*', { count: 'exact', head: true }).eq('org_id', org.id); if (filtro) q = filtro(q); const r = await q; return (r.count as number) || 0 })() // eslint-disable-line @typescript-eslint/no-explicit-any
     supabase.from('planos').select('*').eq('id', org.plano_id).single().then(({ data }) => setPlano(data as Plano))
-    supabase.from('uso_mensal').select('consultas,exportacoes').eq('org_id', org.id).eq('mes', mes).maybeSingle().then(({ data }) => setUso(data || { consultas: 0, exportacoes: 0 }))
-    supabase.from('membros').select('user_id', { count: 'exact', head: true }).eq('org_id', org.id).then(({ count }) => setNMembros(count || 0))
-  }, [org])
+    supabase.from('uso_mensal').select('mes,consultas,exportacoes').eq('org_id', org.id).order('mes', { ascending: false }).limit(12).then(({ data }) => setMeses((data as typeof meses) || []))
+    Promise.all([
+      conta('membros'), conta('clientes'), conta('prospects'),
+      conta('interacoes', (q) => q.like('texto', 'Enviado ao bate-papo%').gte('criado_em', inicioMes)),
+      conta('interacoes', (q) => q.like('texto', 'Respondeu no WhatsApp%').gte('criado_em', inicioMes)),
+      supabase.from('estabelecimentos').select('id', { count: 'estimated', head: true }).then((r) => r.count || 0),
+    ]).then(([membros, clientes, prospects, enviados, respostas, base]) => setCont({ membros, clientes, prospects, enviados, respostas, base }))
+    if (ehAdmin) {
+      supabase.from('execucoes_robo').select('id,executado_em,ia_avaliados,ia_chamadas,tokens_entrada,tokens_saida,ia_parou_por_erro,mes_referencia').order('executado_em', { ascending: false }).limit(12).then(({ data }) => setExecs((data as Execucao[]) || []))
+      const desde = new Date(Date.now() - 30 * 86400000).toISOString()
+      supabase.from('auditoria').select('acao').eq('org_id', org.id).gte('criado_em', desde).limit(5000).then(({ data }) => {
+        const m: Record<string, number> = {}; (data || []).forEach((r: { acao: string }) => (m[r.acao] = (m[r.acao] || 0) + 1))
+        setAcoes(Object.entries(m).sort((a, b) => b[1] - a[1]))
+      })
+    }
+  }, [org, ehAdmin])
+
   const lim = (n: number | null | undefined) => (n == null ? 'sem limite' : fmt(n))
+  const mesAtual = new Date().toISOString().slice(0, 7) + '-01'
+  const atual = meses.find((m) => m.mes === mesAtual) || { mes: mesAtual, consultas: 0, exportacoes: 0 }
+  const custoGoogle = (n: number) => Math.max(0, n - GOOGLE_GRATIS_MES) * (GOOGLE_USD_MIL / 1000)
+  const custoIa = (e: { tokens_entrada: number; tokens_saida: number }) => (e.tokens_entrada * IA_USD_ENTRADA + e.tokens_saida * IA_USD_SAIDA) / 1e6
+  const totalIa = execs.reduce((a, e) => ({ e: a.e + e.tokens_entrada, s: a.s + e.tokens_saida, n: a.n + e.ia_avaliados, c: a.c + custoIa(e) }), { e: 0, s: 0, n: 0, c: 0 })
+  const pct = (u: number, l: number | null | undefined) => (l ? Math.min(100, Math.round((u / l) * 100)) : 0)
+  const barra = (u: number, l: number | null | undefined) => l ? <div className="uso-barra" title={pct(u, l) + '% do limite'}><span style={{ width: pct(u, l) + '%' }} className={pct(u, l) >= 90 ? 'cheio' : ''} /></div> : null
+
   return (
-    <section className="panel">
-      <div className="panel-h"><h2>Plano {plano?.nome}</h2><span className="small muted">Cobrança ainda não ativada</span></div>
-      <div className="table-wrap">
-        <table className="t">
-          <thead><tr><th>Recurso</th><th className="num">Usado</th><th className="num">Limite</th></tr></thead>
+    <div style={{ display: 'grid', gap: 18 }}>
+      <section className="panel">
+        <div className="panel-h"><h2>Uso e limites do plano {plano?.nome}</h2><span className="small muted">{mesRotulo(mesAtual)}</span></div>
+        <div className="uso-cards">
+          <div><span className="small muted">Usuários</span><b>{fmt(cont.membros)}</b><span className="small muted">limite: {lim(plano?.max_usuarios)}</span>{barra(cont.membros || 0, plano?.max_usuarios)}</div>
+          <div><span className="small muted">Consultas ao Google (mês)</span><b>{fmt(atual.consultas)}</b><span className="small muted">limite: {lim(plano?.max_consultas_mes)}</span>{barra(atual.consultas, plano?.max_consultas_mes)}</div>
+          <div><span className="small muted">Exportações (mês)</span><b>{fmt(atual.exportacoes)}</b><span className="small muted">limite: {lim(plano?.max_exportacoes_mes)}</span>{barra(atual.exportacoes, plano?.max_exportacoes_mes)}</div>
+          <div><span className="small muted">Prospects na lista</span><b>{fmt(cont.prospects)}</b><span className="small muted">limite: {lim(plano?.max_prospects)}</span>{barra(cont.prospects || 0, plano?.max_prospects)}</div>
+          <div><span className="small muted">Clientes importados</span><b>{fmt(cont.clientes)}</b><span className="small muted">sem limite</span></div>
+          <div><span className="small muted">Base nacional</span><b>{fmt(cont.base)}</b><span className="small muted">empresas na base</span></div>
+          <div><span className="small muted">Enviados ao bate-papo (mês)</span><b>{fmt(cont.enviados)}</b><span className="small muted">prospects</span></div>
+          <div><span className="small muted">Respostas no WhatsApp (mês)</span><b>{fmt(cont.respostas)}</b><span className="small muted">registradas no histórico</span></div>
+        </div>
+        <div className="panel-b small muted">Para mudar de plano, fale com o suporte do Clyvo Map.</div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-h"><h2>Consultas ao Google e exportações por mês</h2><span className="small muted">últimos 12 meses</span></div>
+        <div className="table-wrap"><table className="t">
+          <thead><tr><th>Mês</th><th className="num">Consultas ao Google</th><th className="num">Custo estimado</th><th className="num">Exportações</th></tr></thead>
           <tbody>
-            <tr><td>Usuários</td><td className="num">{fmt(nMembros)}</td><td className="num">{lim(plano?.max_usuarios)}</td></tr>
-            <tr><td>Exportações neste mês</td><td className="num">{fmt(uso?.exportacoes)}</td><td className="num">{lim(plano?.max_exportacoes_mes)}</td></tr>
-            <tr><td>Consultas externas neste mês</td><td className="num">{fmt(uso?.consultas)}</td><td className="num">{lim(plano?.max_consultas_mes)}</td></tr>
+            {!meses.length && <tr><td colSpan={4}><div className="empty"><p>Nenhum uso registrado ainda.</p></div></td></tr>}
+            {meses.map((m) => <tr key={m.mes}><td>{mesRotulo(m.mes)}</td><td className="num">{fmt(m.consultas)}</td><td className="num">{usd(custoGoogle(m.consultas))}</td><td className="num">{fmt(m.exportacoes)}</td></tr>)}
           </tbody>
-        </table>
-      </div>
-      <div className="panel-b small muted">Para mudar de plano, fale com o suporte do Clyvo Map.</div>
-    </section>
+        </table></div>
+        <div className="panel-b small muted">Custo estimado do Google Places: as primeiras {fmt(GOOGLE_GRATIS_MES)} consultas do mês são gratuitas e as seguintes custam cerca de {usd(GOOGLE_USD_MIL)} por mil. Confira o valor real no Google Cloud.</div>
+      </section>
+
+      {ehAdmin && (<>
+        <section className="panel">
+          <div className="panel-h"><h2>IA da base nacional (Claude)</h2><span className="small muted">por execução do robô</span></div>
+          <div className="table-wrap"><table className="t">
+            <thead><tr><th>Execução</th><th>Base de</th><th className="num">Empresas avaliadas</th><th className="num">Tokens (entrada / saída)</th><th className="num">Custo estimado</th><th /></tr></thead>
+            <tbody>
+              {!execs.length && <tr><td colSpan={6}><div className="empty"><p>Nenhuma execução registrada ainda. O consumo aparece depois da próxima carga do robô.</p></div></td></tr>}
+              {execs.map((e) => <tr key={e.id}>
+                <td>{dataHoraBR(e.executado_em)}</td><td>{e.mes_referencia || '—'}</td><td className="num">{fmt(e.ia_avaliados)}</td>
+                <td className="num">{fmt(e.tokens_entrada)} / {fmt(e.tokens_saida)}</td><td className="num">{usd(custoIa(e))}</td>
+                <td>{e.ia_parou_por_erro && <span className="selo selo-ruim">parou: crédito ou chave</span>}</td>
+              </tr>)}
+              {execs.length > 1 && <tr><td colSpan={2}><b>Total</b></td><td className="num"><b>{fmt(totalIa.n)}</b></td><td className="num"><b>{fmt(totalIa.e)} / {fmt(totalIa.s)}</b></td><td className="num"><b>{usd(totalIa.c)}</b></td><td /></tr>}
+            </tbody>
+          </table></div>
+          <div className="panel-b small muted">Estimativa com {usd(IA_USD_ENTRADA)} por milhão de tokens de entrada e {usd(IA_USD_SAIDA)} por milhão de saída (valores de referência do modelo usado, prompts curtos). O valor exato está em console.anthropic.com.</div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-h"><h2>Atividade da equipe</h2><span className="small muted">últimos 30 dias</span></div>
+          <div className="table-wrap"><table className="t">
+            <thead><tr><th>Ação</th><th className="num">Vezes</th></tr></thead>
+            <tbody>
+              {!acoes.length && <tr><td colSpan={2}><div className="empty"><p>Nenhuma atividade registrada.</p></div></td></tr>}
+              {acoes.map(([a, n]) => <tr key={a}><td>{a}</td><td className="num">{fmt(n)}</td></tr>)}
+            </tbody>
+          </table></div>
+          <div className="panel-b small muted">O detalhe de quem fez o quê está na aba Atividades.</div>
+        </section>
+      </>)}
+    </div>
   )
 }
 
@@ -280,16 +362,16 @@ function BatePapo() {
 }
 export default function Configuracoes() {
   const [aba, setAba] = useState<Aba>('empresa')
-  const ABAS: [Aba, string][] = [['empresa', 'Empresa'], ['membros', 'Membros'], ['plano', 'Plano e uso'], ['bate_papo', 'Bate-papo'], ['atividade', 'Atividades']]
+  const ABAS: [Aba, string][] = [['empresa', 'Empresa'], ['membros', 'Membros'], ['plano', 'Uso'], ['bate_papo', 'Bate-papo'], ['atividade', 'Atividades']]
   return (
     <div className="page" style={{ maxWidth: 980 }}>
-      <div className="page-head"><div><h1>Configurações</h1><p>Empresa, pessoas com acesso, limites do plano e registro de atividades.</p></div></div>
+      <div className="page-head"><div><h1>Configurações</h1><p>Empresa, pessoas com acesso, uso e limites do plano e registro de atividades.</p></div></div>
       <div className="auth-tabs" role="tablist" style={{ maxWidth: 520 }}>
         {ABAS.map(([k, r]) => <button key={k} type="button" role="tab" aria-pressed={aba === k} aria-selected={aba === k} onClick={() => setAba(k)}>{r}</button>)}
       </div>
       {aba === 'empresa' && <Empresa />}
       {aba === 'membros' && <Membros />}
-      {aba === 'plano' && <PlanoUso />}
+      {aba === 'plano' && <Uso />}
       {aba === 'bate_papo' && <BatePapo />}
       {aba === 'atividade' && <Atividade />}
     </div>

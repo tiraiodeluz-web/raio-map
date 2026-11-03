@@ -355,3 +355,11 @@ table.t { width: 100%; border-collapse: collapse; }
 .ajuda-zoom img { width: 100%; height: auto; border-radius: var(--r-sm); max-height: calc(100vh - 110px); object-fit: contain; }
 .ajuda-zoom figcaption { color: #dfe6f3; display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 14px; }
 @media (max-width: 900px) { .ajuda-grid { grid-template-columns: 1fr; } .ajuda-indice { position: static; display: flex; flex-wrap: wrap; } .ajuda-imgs.duas { grid-template-columns: 1fr; } }
+
+/* aba Uso */
+.uso-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
+.uso-cards > div { background: var(--surface); padding: 14px 18px; display: grid; gap: 2px; align-content: start; }
+.uso-cards b { font: 700 26px/1.2 var(--f-display); }
+.uso-barra { height: 6px; border-radius: 3px; background: var(--line); margin-top: 6px; overflow: hidden; }
+.uso-barra span { display: block; height: 100%; background: var(--blue-500, #2F7BFF); }
+.uso-barra span.cheio { background: #d97706; }
