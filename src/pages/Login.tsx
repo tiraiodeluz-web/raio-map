@@ -79,7 +79,7 @@ export default function Login() {
           </div>
           <div className="oferta">
             <span style={{ color: '#7cc4ff', fontWeight: 700 }}>Teste grátis por {OFERTA.diasTeste} dias, sem cartão</span>
-            <div><b className="preco">{OFERTA.preco}</b> <span style={{ color: '#b8c4da' }}>{OFERTA.precoDetalhe}</span></div>
+            <div><s style={{ color: '#8fa0bf' }}>{OFERTA.precoOriginal}</s> <b className="preco">{OFERTA.preco}</b> <b>{OFERTA.desconto}</b> <span style={{ color: '#b8c4da' }}>{OFERTA.validade}</span><br /><span style={{ color: '#b8c4da' }}></span> <span style={{ color: '#b8c4da' }}>{OFERTA.precoDetalhe}</span></div>
             <ul>
               <li>Carteira de clientes no mapa, com busca por CEP e raio</li>
               <li>Base nacional de potenciais clientes, atualizada todo mês</li>

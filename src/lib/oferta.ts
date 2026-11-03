@@ -1,7 +1,11 @@
 // Oferta comercial exibida no login e no aviso do teste. Ajuste aqui se mudar preço ou contato.
 export const OFERTA = {
   diasTeste: 7,
-  preco: 'R$ 5.000',
+  precoOriginal: 'R$ 7.199,00',
+  preco: 'R$ 5.039,30',
+  desconto: '30% OFF',
+  validade: 'até 30/11/2026',
+  limiteClientesTeste: 30,
   precoDetalhe: 'pagamento único, sem mensalidade',
   custosCliente: 'Servidor, IA e consultas ao Google ficam na conta da sua empresa (cerca de R$ 150 por mês, conforme o uso).',
   contato: 'https://pay.cakto.com.br/ss4bjts_1277685',

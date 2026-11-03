@@ -1,3 +1,4 @@
+import { OFERTA } from '../lib/oferta'
 import { useMemo, useState, type DragEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
@@ -132,7 +133,13 @@ export default function Importar() {
     if (!org || !arquivo) return
     setErro(null); setProgresso(0)
     try {
-      const rs = await montar()
+      let rs = await montar()
+      if (org.plano_id === 'teste') {
+        const { count } = await supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('org_id', org.id)
+        const livres = OFERTA.limiteClientesTeste - (count || 0)
+        if (livres <= 0) throw new Error(`Limite do teste grátis atingido (${OFERTA.limiteClientesTeste}/${OFERTA.limiteClientesTeste} clientes). Conheça a licença para importar mais.`)
+        if (rs.length > livres) { toast(`Teste grátis: importando só ${livres} dos ${rs.length} clientes (limite de ${OFERTA.limiteClientesTeste}).`); rs = rs.slice(0, livres) }
+      }
       const { data: imp, error: e1 } = await supabase.from('importacoes')
         .insert({ org_id: org.id, tipo: 'clientes', arquivo: arquivo.name, linhas_total: linhas.length, user_id: (await supabase.auth.getUser()).data.user?.id })
         .select('id').single()

@@ -56,7 +56,7 @@ export default function Layout() {
       <main className="main" style={ehMapa && dias !== 0 ? { overflow: 'hidden', display: 'flex', flexDirection: 'column' } : undefined}>
         {dias !== null && dias > 0 && (
           <div className="faixa-teste" role="status">
-            <span><b>Teste grátis:</b> {dias === 1 ? 'último dia' : `faltam ${dias} dias`}. Depois, licença por {OFERTA.preco}, {OFERTA.precoDetalhe}.</span>
+            <span><b>Teste grátis:</b> {dias === 1 ? 'último dia' : `faltam ${dias} dias`}. Depois, licença por {OFERTA.preco} ({OFERTA.desconto} {OFERTA.validade}), {OFERTA.precoDetalhe}.</span>
             <a className="btn btn-sm btn-primary" href={OFERTA.contato} target="_blank" rel="noopener">Contratar</a>
           </div>
         )}
@@ -65,7 +65,7 @@ export default function Layout() {
             <section className="panel panel-b" style={{ display: 'grid', gap: 14, marginTop: 40 }}>
               <h1>Seu teste grátis terminou</h1>
               <p>Os {OFERTA.diasTeste} dias de teste da empresa {org?.nome} acabaram. Seus clientes, prospects e anotações continuam guardados e voltam a aparecer assim que a licença for ativada.</p>
-              <p><b>Licença do Clyvo Map: {OFERTA.preco}</b>, {OFERTA.precoDetalhe}. {OFERTA.custosCliente}</p>
+              <p><b>Licença do Clyvo Map: <s>{OFERTA.precoOriginal}</s> {OFERTA.preco}</b> ({OFERTA.desconto} {OFERTA.validade}), {OFERTA.precoDetalhe}. {OFERTA.custosCliente}</p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <a className="btn btn-primary" href={OFERTA.contato} target="_blank" rel="noopener">Falar com a Clyvo</a>
                 <button className="btn" type="button" onClick={() => supabase.auth.signOut()}>Sair</button>
