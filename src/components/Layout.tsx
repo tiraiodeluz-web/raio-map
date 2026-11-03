@@ -4,12 +4,13 @@ import { useSessao } from '../context/Sessao'
 import { supabase } from '../lib/supabase'
 import { PAPEL_ROTULO } from '../lib/types'
 import Marca from './Marca'
-import { IcClientes, IcConfig, IcMapa, IcPainel } from './Icones'
+import { IcClientes, IcConfig, IcMapa, IcPainel, IcProspeccao } from './Icones'
 
 const ITENS = [
   { to: '/', rotulo: 'Dashboard', Ic: IcPainel, end: true },
   { to: '/mapa', rotulo: 'Mapa comercial', Ic: IcMapa },
   { to: '/clientes', rotulo: 'Clientes', Ic: IcClientes },
+  { to: '/prospeccao', rotulo: 'Prospecção', Ic: IcProspeccao },
   { to: '/configuracoes', rotulo: 'Configurações', Ic: IcConfig },
 ]
 

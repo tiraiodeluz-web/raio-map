@@ -8,12 +8,15 @@ import type { ClienteMapa } from '../lib/types'
 import { cepNum, fmtCep, haversine, localizarCep, norm, UF_NOMES, type LocalCep } from '../lib/geo'
 import { fmt, km } from '../lib/format'
 import FichaCliente from '../components/FichaCliente'
+import FichaEstabelecimento from '../components/FichaEstabelecimento'
+import { supabase } from '../lib/supabase'
+import type { PontoPotencial } from '../lib/prospeccao'
 import { IcBusca } from '../components/Icones'
 
-const COR = { ativo: '#2563c9', inativo: '#c8433a' }
+const COR = { ativo: '#2563c9', inativo: '#c8433a', potencial: '#e07b22' }
 const RAIOS = [10, 25, 50, 100, 200]
 
-interface Cidade { key: string; cidade: string; uf: string; lat: number; lng: number; lista: ClienteMapa[]; a: number; i: number }
+interface Cidade { key: string; cidade: string; uf: string; lat: number; lng: number; lista: ClienteMapa[]; pot: PontoPotencial[]; a: number; i: number }
 type Sug = { tipo: 'uf' | 'cidade' | 'cliente' | 'cep'; rotulo: string; extra?: string; valor: string }
 type Painel = { tipo: 'cidade'; key: string } | { tipo: 'raio' } | null
 
@@ -31,7 +34,9 @@ export default function MapaComercial() {
   const pontos = useRef<L.LayerGroup | null>(null)
   const raioLayer = useRef<L.LayerGroup | null>(null)
   const [geo, setGeo] = useState<GeoJSON.FeatureCollection | null>(null)
-  const [cats, setCats] = useState({ ativo: true, inativo: true })
+  const [cats, setCats] = useState({ ativo: true, inativo: true, potencial: true })
+  const [potenciais, setPotenciais] = useState<PontoPotencial[] | null>(null)
+  const [fichaEstab, setFichaEstab] = useState<number | null>(null)
   const [uf, setUf] = useState('')
   const [cidadeSel, setCidadeSel] = useState('')
   const [busca, setBusca] = useState('')
@@ -44,6 +49,23 @@ export default function MapaComercial() {
   const [ficha, setFicha] = useState<string | null>(null)
   const [zoom, setZoom] = useState(4)
 
+  const { idxMun } = useSessao()
+  const nomeMun = (ibge: number | null) => (ibge && idxMun?.porIbge.get(ibge)?.nome) || ''
+  useEffect(() => {
+    if (!org) return
+    let vivo = true
+    ;(async () => {
+      const out: PontoPotencial[] = []
+      for (let de = 0; ; de += 1000) {
+        const { data, error } = await supabase.rpc('estabelecimentos_mapa', { p_org: org.id }).range(de, de + 999)
+        if (error || !data) break
+        out.push(...(data as PontoPotencial[])); if (data.length < 1000) break
+      }
+      if (vivo) setPotenciais(out)
+    })()
+    return () => { vivo = false }
+  }, [org])
+
   // ---------- dados derivados ----------
   const filtrados = useMemo(() => (dados || []).filter((c) => c.lat != null && cats[c.situacao] && (!uf || c.uf === uf)), [dados, cats, uf])
   const cidades = useMemo(() => {
@@ -51,22 +73,30 @@ export default function MapaComercial() {
     for (const c of filtrados) {
       const key = (c.municipio_ibge ?? c.cidade) + '|' + c.uf
       let g = m.get(key)
-      if (!g) { g = { key, cidade: c.cidade || '', uf: c.uf || '', lat: c.lat!, lng: c.lng!, lista: [], a: 0, i: 0 }; m.set(key, g) }
+      if (!g) { g = { key, cidade: c.cidade || '', uf: c.uf || '', lat: c.lat!, lng: c.lng!, lista: [], pot: [], a: 0, i: 0 }; m.set(key, g) }
       g.lista.push(c); if (c.situacao === 'ativo') g.a++; else g.i++
     }
+    if (cats.potencial) for (const e of potenciais || []) {
+      if (uf && e.uf !== uf) continue
+      const key = e.municipio_ibge + '|' + e.uf
+      let g = m.get(key)
+      if (!g) { g = { key, cidade: nomeMun(e.municipio_ibge), uf: e.uf, lat: e.lat, lng: e.lng, lista: [], pot: [], a: 0, i: 0 }; m.set(key, g) }
+      g.pot.push(e)
+    }
     return m
-  }, [filtrados])
+  }, [filtrados, potenciais, cats.potencial, uf]) // eslint-disable-line react-hooks/exhaustive-deps
   const porUf = useMemo(() => { const m: Record<string, number> = {}; filtrados.forEach((c) => (m[c.uf!] = (m[c.uf!] || 0) + 1)); return m }, [filtrados])
   const contagem = useMemo(() => {
-    const t = { ativo: 0, inativo: 0 }; (dados || []).forEach((c) => { if (c.lat != null && (!uf || c.uf === uf)) t[c.situacao]++ }); return t
-  }, [dados, uf])
+    const t = { ativo: 0, inativo: 0, potencial: 0 }; (dados || []).forEach((c) => { if (c.lat != null && (!uf || c.uf === uf)) t[c.situacao]++ })
+    ;(potenciais || []).forEach((e) => { if (!uf || e.uf === uf) t.potencial++ }); return t
+  }, [dados, uf, potenciais])
   const indice = useMemo(() => {
-    const sc = new Supercluster<{ key: string; n: number; a: number; i: number }, { n: number; a: number; i: number }>({
+    const sc = new Supercluster<{ key: string; n: number; a: number; i: number; p: number }, { n: number; a: number; i: number; p: number }>({
       radius: 46, maxZoom: 8,
-      map: (p) => ({ n: p.n, a: p.a, i: p.i }),
-      reduce: (acc, p) => { acc.n += p.n; acc.a += p.a; acc.i += p.i },
+      map: (p) => ({ n: p.n, a: p.a, i: p.i, p: p.p }),
+      reduce: (acc, p) => { acc.n += p.n; acc.a += p.a; acc.i += p.i; acc.p += p.p },
     })
-    sc.load([...cidades.values()].map((g) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [g.lng, g.lat] }, properties: { key: g.key, n: g.lista.length, a: g.a, i: g.i } })))
+    sc.load([...cidades.values()].map((g) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [g.lng, g.lat] }, properties: { key: g.key, n: g.lista.length + g.pot.length, a: g.a, i: g.i, p: g.pot.length } })))
     return sc
   }, [cidades])
   const perto = useMemo(() => {
@@ -120,18 +150,20 @@ export default function MapaComercial() {
       const z = Math.round(map.getZoom())
       for (const f of indice.getClusters([b.getWest() - 1, b.getSouth() - 1, b.getEast() + 1, b.getNorth() + 1], z)) {
         const [lng, lat] = f.geometry.coordinates
-        const p = f.properties as { n: number; a: number; i: number; key?: string; cluster?: boolean; cluster_id?: number }
-        const cor = p.a ? COR.ativo : COR.inativo
+        const p = f.properties as { n: number; a: number; i: number; p: number; key?: string; cluster?: boolean; cluster_id?: number }
+        const cor = p.a ? COR.ativo : p.i ? COR.inativo : COR.potencial
+        const g1 = (p.a / p.n) * 360, g2 = ((p.a + p.i) / p.n) * 360
+        const fundo = [p.a, p.i, p.p].filter(Boolean).length > 1 ? `background:conic-gradient(${COR.ativo} 0 ${g1}deg, ${COR.inativo} 0 ${g2}deg, ${COR.potencial} 0)` : ''
         const d = Math.round(Math.min(54, 14 + Math.sqrt(p.n) * 4.2))
         const sel = painel?.tipo === 'cidade' && p.key === painel.key
-        const icon = L.divIcon({ className: '', iconSize: [d, d], html: `<div class="cluster-icon" style="width:${d}px;height:${d}px;background:${cor};${sel ? 'box-shadow:0 0 0 3px #3AB6FF;' : ''}${p.i && p.a ? `background:conic-gradient(${COR.ativo} 0 ${(p.a / p.n) * 360}deg, ${COR.inativo} 0)` : ''}">${p.n > 1 ? p.n : ''}</div>` })
+        const icon = L.divIcon({ className: '', iconSize: [d, d], html: `<div class="cluster-icon" style="width:${d}px;height:${d}px;background:${cor};${sel ? 'box-shadow:0 0 0 3px #3AB6FF;' : ''}${fundo}">${p.n > 1 ? p.n : ''}</div>` })
         const m = L.marker([lat, lng], { icon, keyboard: true, riseOnHover: true })
         if (p.cluster) {
           m.bindTooltip(`${fmt(p.n)} clientes nesta região. Clique para aproximar.`, { className: 'tip', direction: 'top', offset: [0, -d / 2] })
           m.on('click', () => map.flyTo([lat, lng], Math.min(indice.getClusterExpansionZoom(p.cluster_id!), 10), { duration: 0.5 }))
         } else {
           const g = cidades.get(p.key!)!
-          m.bindTooltip(`<b>${g.cidade}</b> – ${g.uf} · ${fmt(p.n)} cliente${p.n > 1 ? 's' : ''}`, { className: 'tip', direction: 'top', offset: [0, -d / 2] })
+          m.bindTooltip(`<b>${g.cidade}</b> – ${g.uf} · ${[g.lista.length ? fmt(g.lista.length) + ' cliente' + (g.lista.length > 1 ? 's' : '') : '', g.pot.length ? fmt(g.pot.length) + ' potencia' + (g.pot.length > 1 ? 'is' : 'l') : ''].filter(Boolean).join(' · ')}`, { className: 'tip', direction: 'top', offset: [0, -d / 2] })
           m.on('click', () => setPainel({ tipo: 'cidade', key: g.key }))
         }
         grp.addLayer(m)
@@ -190,7 +222,7 @@ export default function MapaComercial() {
     const k = norm(t); const out: Sug[] = []
     for (const [s, n] of Object.entries(UF_NOMES)) if (norm(n).startsWith(k) || s === t.toUpperCase()) out.push({ tipo: 'uf', rotulo: n, extra: 'estado', valor: s })
     const todasCidades = new Map<string, Cidade>()
-    ;(dados || []).forEach((c) => { if (c.lat != null) { const key = (c.municipio_ibge ?? c.cidade) + '|' + c.uf; if (!todasCidades.has(key)) todasCidades.set(key, { key, cidade: c.cidade || '', uf: c.uf || '', lat: c.lat, lng: c.lng!, lista: [], a: 0, i: 0 }) } })
+    ;(dados || []).forEach((c) => { if (c.lat != null) { const key = (c.municipio_ibge ?? c.cidade) + '|' + c.uf; if (!todasCidades.has(key)) todasCidades.set(key, { key, cidade: c.cidade || '', uf: c.uf || '', lat: c.lat, lng: c.lng!, lista: [], pot: [], a: 0, i: 0 }) } })
     for (const g of todasCidades.values()) if (norm(g.cidade).startsWith(k)) out.push({ tipo: 'cidade', rotulo: `${g.cidade} – ${g.uf}`, extra: 'cidade', valor: g.key })
     for (const c of dados || []) if (norm(c.nome).includes(k) || (c.nome_fantasia && norm(c.nome_fantasia).includes(k))) out.push({ tipo: 'cliente', rotulo: c.nome, extra: c.cidade ? `${c.cidade} – ${c.uf}` : 'cliente', valor: c.id })
     return out.slice(0, 12)
@@ -211,7 +243,7 @@ export default function MapaComercial() {
   }
 
   const ranking = useMemo(() => {
-    if (uf) return [...cidades.values()].map((g) => ({ k: g.key, rot: g.cidade, n: g.lista.length })).sort((a, b) => b.n - a.n).slice(0, 30)
+    if (uf) return [...cidades.values()].map((g) => ({ k: g.key, rot: g.cidade, n: g.lista.length })).filter((r) => r.n).sort((a, b) => b.n - a.n).slice(0, 30)
     return Object.entries(porUf).map(([s, n]) => ({ k: s, rot: UF_NOMES[s], n })).sort((a, b) => b.n - a.n)
   }, [uf, cidades, porUf])
   const cidadesDoUf = useMemo(() => [...cidades.values()].sort((a, b) => a.cidade.localeCompare(b.cidade, 'pt-BR')), [cidades])
@@ -256,6 +288,7 @@ export default function MapaComercial() {
           <div className="chips" role="group" aria-label="Categorias">
             <button type="button" className="chip" aria-pressed={cats.ativo} onClick={() => setCats((c) => ({ ...c, ativo: !c.ativo }))}><span className="dot" style={{ background: COR.ativo }} />Clientes ativos <small>{fmt(contagem.ativo)}</small></button>
             <button type="button" className="chip" aria-pressed={cats.inativo} disabled={!contagem.inativo} onClick={() => setCats((c) => ({ ...c, inativo: !c.inativo }))}><span className="dot" style={{ background: COR.inativo }} />Inativos <small>{fmt(contagem.inativo)}</small></button>
+            <button type="button" className="chip" aria-pressed={cats.potencial} disabled={!contagem.potencial} onClick={() => setCats((c) => ({ ...c, potencial: !c.potencial }))}><span className="dot" style={{ background: COR.potencial }} />Potenciais clientes <small>{fmt(contagem.potencial)}</small></button>
           </div>
           <div style={{ display: 'grid', gap: 8 }}>
             <select id="m-uf" className="input" aria-label="Estado" value={uf} onChange={(e) => (e.target.value ? escolherUf(e.target.value) : limpar())}>
@@ -287,7 +320,7 @@ export default function MapaComercial() {
           {painel.tipo === 'cidade' && cidadePainel && (<>
             <div className="h">
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><h2>{cidadePainel.cidade} – {cidadePainel.uf}</h2><button className="btn btn-ghost btn-sm" type="button" onClick={() => setPainel(null)}>Fechar</button></div>
-              <span className="small muted">{fmt(cidadePainel.lista.length)} clientes{cidadePainel.i ? ` · ${cidadePainel.i} inativos` : ''}</span>
+              <span className="small muted">{fmt(cidadePainel.lista.length)} clientes{cidadePainel.i ? ` · ${cidadePainel.i} inativos` : ''}{cidadePainel.pot.length ? ` · ${fmt(cidadePainel.pot.length)} potenciais` : ''}</span>
             </div>
             <div className="b">
               {cidadePainel.lista.map((c) => (
@@ -296,6 +329,13 @@ export default function MapaComercial() {
                   {c.nome_fantasia && c.nome_fantasia !== c.nome && <span className="meta">{c.nome_fantasia}</span>}
                   <span className="meta mono">{c.telefones?.[0] || ''}{c.contato ? ` · ${c.contato}` : ''}</span>
                   {c.situacao === 'inativo' && <span className="pill pill-inativo" style={{ justifySelf: 'start' }}>Inativo</span>}
+                </button>
+              ))}
+              {cidadePainel.pot.length > 0 && <div className="grp-h"><span>Potenciais clientes</span><span className="muted">{fmt(cidadePainel.pot.length)}</span></div>}
+              {cidadePainel.pot.map((e) => (
+                <button key={e.id} type="button" className="client-row" onClick={() => setFichaEstab(e.id)}>
+                  <b>{e.nome}</b>
+                  <span className="meta">{e.prospect_id ? 'Na sua lista de prospects' : 'Ainda não abordado'}{e.confiabilidade ? ` · confiabilidade ${e.confiabilidade === 'media' ? 'média' : e.confiabilidade}` : ''}</span>
                 </button>
               ))}
             </div>
@@ -330,6 +370,7 @@ export default function MapaComercial() {
         <div className="float legend" aria-hidden="true">
           <div className="row"><span className="dot" style={{ background: COR.ativo }} />Cliente ativo</div>
           <div className="row"><span className="dot" style={{ background: COR.inativo }} />Cliente inativo</div>
+          <div className="row"><span className="dot" style={{ background: COR.potencial }} />Potencial cliente (base pública)</div>
           <div className="row"><span className="dot" style={{ background: '#3AB6FF' }} />Seu CEP e o raio de busca</div>
           <div className="row" style={{ color: 'var(--faint)' }}>Número no círculo = clientes agrupados{zoom < 6 ? '. Aproxime para separar.' : ''}</div>
         </div>
@@ -344,6 +385,7 @@ export default function MapaComercial() {
       )}
 
       {ficha && <FichaCliente id={ficha} onClose={() => setFicha(null)} />}
+      {fichaEstab !== null && <FichaEstabelecimento id={fichaEstab} onClose={() => setFichaEstab(null)} />}
     </div>
   )
 }

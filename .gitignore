@@ -7,3 +7,4 @@ dist
 *.csv
 *.xlsx
 *.pdf
+saida/

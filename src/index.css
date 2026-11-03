@@ -99,6 +99,11 @@ textarea.input { height: auto; min-height: 84px; padding: 9px 11px; resize: vert
 .pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .pill-ativo { background: #e8f0fc; color: var(--cat-ativo); }
 .pill-inativo { background: #fbeceb; color: var(--cat-inativo); }
+.pill-potencial { background: #fdf0e4; color: #a8530c; }
+.pill-sit { background: var(--hover); color: var(--ink); }
+.conf-alta { background: #e3f4ea; color: #17643d; }
+.conf-media { background: #fdf3dd; color: #8a5800; }
+.conf-baixa { background: #f0f1f4; color: #5d6981; }
 .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
 
 /* ---------- estrutura do app ---------- */
