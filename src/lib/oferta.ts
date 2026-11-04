@@ -8,7 +8,7 @@ export const OFERTA = {
   limiteClientesTeste: 30,
   mensalidade: 'R$ 497',
   precoDetalhe: 'de entrada (implementação). A 1ª mensalidade de R$ 497 só vence em janeiro',
-  custosCliente: '',
+  custosCliente: 'Servidor, IA e consultas ao Google são pagos à parte, direto pela sua empresa (cerca de R$ 150 por mês, conforme o uso).',
   contato: 'https://pay.cakto.com.br/ss4bjts_1277685',
 }
 
