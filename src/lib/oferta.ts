@@ -6,8 +6,9 @@ export const OFERTA = {
   desconto: '30% OFF',
   validade: 'até 30/11/2026',
   limiteClientesTeste: 30,
-  precoDetalhe: 'pagamento único, sem mensalidade',
-  custosCliente: 'Servidor, IA e consultas ao Google ficam na conta da sua empresa (cerca de R$ 150 por mês, conforme o uso).',
+  mensalidade: 'R$ 497',
+  precoDetalhe: 'de entrada (implementação). A 1ª mensalidade de R$ 497 só vence em janeiro',
+  custosCliente: '',
   contato: 'https://pay.cakto.com.br/ss4bjts_1277685',
 }
 
