@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useSessao } from '../context/Sessao'
 import { msgErro, supabase } from '../lib/supabase'
 import { dataHoraBR, fmt, km } from '../lib/format'
@@ -9,7 +10,8 @@ import MiniMapa, { type PontoMini } from '../components/MiniMapa'
 
 interface Cand { chave: string; tipo: 'cliente' | 'prospect'; ref: string; nome: string; endereco: string; cidade: string; uf: string; lat: number; lng: number }
 interface Parada { id?: string; tipo: 'cliente' | 'prospect'; ref_id: string; nome: string; endereco: string | null; lat: number; lng: number; ordem?: number; visitado_em?: string | null; observacao?: string | null }
-interface RotaSalva { id: string; nome: string; criado_em: string; rota_paradas: Parada[] }
+interface RotaSalva { id: string; nome: string; criado_em: string; responsavel_id: string | null; rota_paradas: Parada[] }
+interface Membro { user_id: string; email: string; papel: string }
 const MAX = 25
 
 export default function Rotas() {
@@ -19,7 +21,11 @@ export default function Rotas() {
 }
 
 function Tela() {
-  const { org, municipios, podeEditar, toast } = useSessao()
+  const { org, municipios, podeEditar, toast, session } = useSessao()
+  const uid = session?.user.id
+  const [params] = useSearchParams()
+  const [membros, setMembros] = useState<Membro[]>([])
+  const [resp, setResp] = useState('')
   const [fonte, setFonte] = useState<'cliente' | 'prospect'>('cliente')
   const [uf, setUf] = useState(''); const [cidade, setCidade] = useState(''); const [q, setQ] = useState('')
   const [cands, setCands] = useState<Cand[] | null>(null)
@@ -33,11 +39,13 @@ function Tela() {
 
   const carregarSalvas = useCallback(async () => {
     if (!org) return
-    const { data, error } = await supabase.from('rotas').select('id,nome,criado_em,rota_paradas(id,tipo,ref_id,nome,endereco,lat,lng,ordem,visitado_em,observacao)').eq('org_id', org.id).order('criado_em', { ascending: false }).limit(30)
+    const { data, error } = await supabase.from('rotas').select('id,nome,criado_em,responsavel_id,rota_paradas(id,tipo,ref_id,nome,endereco,lat,lng,ordem,visitado_em,observacao)').eq('org_id', org.id).order('criado_em', { ascending: false }).limit(30)
     if (error) return setErro(msgErro(error))
     setSalvas(((data as unknown as RotaSalva[]) || []).map((r) => ({ ...r, rota_paradas: [...r.rota_paradas].sort((a, b) => (a.ordem || 0) - (b.ordem || 0)) })))
   }, [org])
   useEffect(() => { carregarSalvas() }, [carregarSalvas])
+  useEffect(() => { if (org) supabase.rpc('listar_membros', { p_org: org.id }).then(({ data }) => setMembros((data as Membro[]) || [])) }, [org])
+  useEffect(() => { const r = params.get('rota'); if (r) setAberta(r) }, [params])
 
   async function buscar() {
     if (!org) return
@@ -68,11 +76,11 @@ function Tela() {
   async function guardar() {
     if (!org || rota.length < 2) return
     const { data: u } = await supabase.auth.getUser()
-    const { data: r, error } = await supabase.from('rotas').insert({ org_id: org.id, nome: nome.trim() || `Rota de ${new Date().toLocaleDateString('pt-BR')}`, criado_por: u.user?.id }).select('id').single()
+    const { data: r, error } = await supabase.from('rotas').insert({ org_id: org.id, nome: nome.trim() || `Rota de ${new Date().toLocaleDateString('pt-BR')}`, criado_por: u.user?.id, responsavel_id: resp || null }).select('id').single()
     if (error) return toast(msgErro(error))
     const { error: e2 } = await supabase.from('rota_paradas').insert(rota.map((p, i) => ({ rota_id: r.id, org_id: org.id, tipo: p.tipo, ref_id: p.ref_id, nome: p.nome, endereco: p.endereco, lat: p.lat, lng: p.lng, ordem: i })))
     if (e2) { await supabase.from('rotas').delete().eq('id', r.id); return toast(msgErro(e2)) }
-    toast('Rota salva.'); setRota([]); setEscolhidos([]); setNome(''); await carregarSalvas(); setAberta(r.id)
+    toast(resp ? 'Rota salva e atribuída. Use Compartilhar para avisar o representante.' : 'Rota salva.'); setRota([]); setEscolhidos([]); setNome(''); setResp(''); await carregarSalvas(); setAberta(r.id)
   }
 
   const pts: PontoMini[] = rota.map((p, i) => ({ id: String(i), lat: p.lat, lng: p.lng, cor: '#2563c9', titulo: p.nome, rotulo: String(i + 1) }))
@@ -118,6 +126,7 @@ function Tela() {
                 </ol>
                 <div className="small muted">A distância é em linha reta, só para ordenar. O trajeto por ruas abre no Google Maps.</div>
                 <div className="filtros"><input className="input" style={{ flex: 1 }} placeholder="Nome da rota (opcional)" value={nome} onChange={(e) => setNome(e.target.value)} />
+                  <select className="input" aria-label="Representante responsável" value={resp} onChange={(e) => setResp(e.target.value)}><option value="">Sem responsável</option>{membros.map((m) => <option key={m.user_id} value={m.user_id}>{m.email}{m.user_id === uid ? ' (eu)' : ''}</option>)}</select>
                   {podeEditar && <button className="btn btn-primary" type="button" onClick={guardar} disabled={rota.length < 2}>Salvar rota</button>}
                   {link && <a className="btn" href={link} target="_blank" rel="noreferrer">Abrir no Google Maps</a>}</div>
               </div>
@@ -129,15 +138,32 @@ function Tela() {
       <section className="panel">
         <div className="panel-h"><h2>Rotas salvas e histórico de visitas</h2></div>
         {!salvas.length && <div className="panel-b muted">Nenhuma rota salva ainda.</div>}
-        {salvas.map((r) => <RotaSalvaView key={r.id} r={r} aberta={aberta === r.id} onAbrir={() => setAberta(aberta === r.id ? null : r.id)} onMudou={carregarSalvas} podeEditar={podeEditar} />)}
+        {[...salvas].sort((a, b) => Number(b.responsavel_id === uid) - Number(a.responsavel_id === uid)).map((r) => <RotaSalvaView key={r.id} r={r} aberta={aberta === r.id} onAbrir={() => setAberta(aberta === r.id ? null : r.id)} onMudou={carregarSalvas} podeEditar={podeEditar} membros={membros} uid={uid} />)}
       </section>
     </div>
   )
 }
 
-function RotaSalvaView({ r, aberta, onAbrir, onMudou, podeEditar }: { r: RotaSalva; aberta: boolean; onAbrir: () => void; onMudou: () => void; podeEditar: boolean }) {
+function RotaSalvaView({ r, aberta, onAbrir, onMudou, podeEditar, membros, uid }: { r: RotaSalva; aberta: boolean; onAbrir: () => void; onMudou: () => void; podeEditar: boolean; membros: Membro[]; uid?: string }) {
   const { toast } = useSessao()
   const feitas = r.rota_paradas.filter((p) => p.visitado_em).length
+  const dono = membros.find((m) => m.user_id === r.responsavel_id)
+  const linkApp = `${location.origin}/rotas?rota=${r.id}`
+  async function atribuir(v: string) {
+    const { error } = await supabase.from('rotas').update({ responsavel_id: v || null }).eq('id', r.id)
+    if (error) return toast(msgErro(error)); toast(v ? 'Rota atribuída.' : 'Responsável removido.'); onMudou()
+  }
+  function textoCompartilhar() {
+    const paradas = r.rota_paradas.map((p, i) => `${i + 1}. ${p.nome}${p.endereco ? ' - ' + p.endereco : ''}`).join('\n')
+    const maps = linkGoogleMaps(r.rota_paradas)
+    return `Rota de visitas: ${r.nome}\n\n${paradas}\n\n${maps ? 'Trajeto no Google Maps: ' + maps + '\n' : ''}Marcar visitas no Clyvo Map: ${linkApp}`
+  }
+  async function compartilhar() {
+    const t = textoCompartilhar()
+    try { if (navigator.share) { await navigator.share({ title: r.nome, text: t }); return } } catch { return }
+    window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank', 'noreferrer')
+  }
+  async function copiarLink() { try { await navigator.clipboard.writeText(linkApp); toast('Link copiado.') } catch { toast(linkApp) } }
   async function marcar(p: Parada, obs: string, feita: boolean) {
     const { data: u } = await supabase.auth.getUser()
     const { error } = await supabase.from('rota_paradas').update(feita ? { visitado_em: new Date().toISOString(), visitado_por: u.user?.id, observacao: obs.trim() || null } : { visitado_em: null, visitado_por: null }).eq('id', p.id!)
@@ -146,11 +172,18 @@ function RotaSalvaView({ r, aberta, onAbrir, onMudou, podeEditar }: { r: RotaSal
   async function apagar() { const { error } = await supabase.from('rotas').delete().eq('id', r.id); if (error) return toast(msgErro(error)); onMudou() }
   return (
     <div className="rota-salva">
-      <button type="button" className="rota-cab" onClick={onAbrir} aria-expanded={aberta}><b>{r.nome}</b><span className="small muted">{dataHoraBR(r.criado_em)} · {feitas}/{r.rota_paradas.length} visitadas {aberta ? '▲' : '▼'}</span></button>
+      <button type="button" className="rota-cab" onClick={onAbrir} aria-expanded={aberta}><b>{r.nome}</b><span className="small muted">{r.responsavel_id === uid ? 'Minha rota · ' : dono ? dono.email + ' · ' : ''}{dataHoraBR(r.criado_em)} · {feitas}/{r.rota_paradas.length} visitadas {aberta ? '▲' : '▼'}</span></button>
       {aberta && (
         <div className="panel-b" style={{ display: 'grid', gap: 10 }}>
           <MiniMapa pontos={r.rota_paradas.map((p, i) => ({ id: String(i), lat: p.lat, lng: p.lng, cor: p.visitado_em ? '#2f9e5b' : '#2563c9', titulo: p.nome, rotulo: String(i + 1) }))} linha={r.rota_paradas.map((p) => [p.lat, p.lng])} altura={240} />
           {r.rota_paradas.map((p, i) => <Visita key={p.id} p={p} n={i + 1} podeEditar={podeEditar} onMarcar={marcar} />)}
+          <div className="filtros" style={{ alignItems: 'center' }}>
+            <label className="field"><span>Representante responsável</span>
+              <select className="input" value={r.responsavel_id || ''} disabled={!podeEditar} onChange={(e) => atribuir(e.target.value)}><option value="">Sem responsável</option>{membros.map((m) => <option key={m.user_id} value={m.user_id}>{m.email}{m.user_id === uid ? ' (eu)' : ''}</option>)}</select></label>
+            <button className="btn btn-primary" type="button" onClick={compartilhar}>Compartilhar</button>
+            <button className="btn" type="button" onClick={copiarLink}>Copiar link</button>
+          </div>
+          <div className="small muted">O representante precisa ter acesso à empresa (Configurações → Membros, papel Vendedor). Ele abre o link, entra e marca cada visita.</div>
           <div className="filtros">{linkGoogleMaps(r.rota_paradas) && <a className="btn" href={linkGoogleMaps(r.rota_paradas)!} target="_blank" rel="noreferrer">Abrir no Google Maps</a>}
             {podeEditar && <button className="btn" type="button" onClick={() => confirm('Apagar esta rota e o histórico de visitas dela?') && apagar()}>Apagar rota</button>}</div>
           <div className="small muted">{fmt(feitas)} visitas registradas nesta rota.</div>

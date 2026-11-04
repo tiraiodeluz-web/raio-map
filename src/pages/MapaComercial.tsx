@@ -11,6 +11,8 @@ import FichaCliente from '../components/FichaCliente'
 import FichaEstabelecimento from '../components/FichaEstabelecimento'
 import { supabase } from '../lib/supabase'
 import { lembrado, lembrar, type PontoPotencial } from '../lib/prospeccao'
+import { categoriasDaEmpresa, type CatConc, type PontoConc } from '../lib/conc'
+import { ehPago } from '../lib/plano'
 import { IcBusca } from '../components/Icones'
 
 const COR = { ativo: '#2563c9', inativo: '#c8433a', potencial: '#e07b22' }
@@ -37,6 +39,10 @@ export default function MapaComercial() {
   const [cats, setCats] = useState({ ativo: true, inativo: true, potencial: true })
   const [potenciais, setPotenciais] = useState<PontoPotencial[] | null>(null)
   const [fichaEstab, setFichaEstab] = useState<number | null>(null)
+  const [conc, setConc] = useState<PontoConc[]>([])
+  const [catsConc, setCatsConc] = useState<CatConc[]>([])
+  const [verConc, setVerConc] = useState(true)
+  const concLayer = useRef<L.LayerGroup | null>(null)
   const [uf, setUf] = useState('')
   const [cidadeSel, setCidadeSel] = useState('')
   const [busca, setBusca] = useState('')
@@ -119,6 +125,7 @@ export default function MapaComercial() {
     map.fitBounds([[5.3, -74], [-33.8, -34.8]], { padding: [20, 20] })
     pontos.current = L.layerGroup().addTo(map)
     raioLayer.current = L.layerGroup().addTo(map)
+    concLayer.current = L.layerGroup().addTo(map)
     map.on('zoomend', () => setZoom(map.getZoom()))
     mapRef.current = map
     return () => { map.remove(); mapRef.current = null }
@@ -176,6 +183,30 @@ export default function MapaComercial() {
     map.on('moveend', desenhar)
     return () => { map.off('moveend', desenhar) }
   }, [indice, cidades, painel])
+
+  // concorrentes e demais estabelecimentos classificados (recurso dos planos pagos)
+  useEffect(() => {
+    if (!org || !ehPago(org)) { setConc([]); return }
+    let vivo = true
+    ;(async () => {
+      const [cs, r] = await Promise.all([categoriasDaEmpresa(org.id), supabase.rpc('concorrentes_mapa', { p_org: org.id })])
+      if (!vivo) return
+      setCatsConc(cs); setConc(((r.data as PontoConc[]) || []))
+    })()
+    return () => { vivo = false }
+  }, [org])
+  const concVisiveis = useMemo(() => conc.filter((c) => (!uf || c.uf === uf) && catsConc.find((k) => k.chave === c.categoria)?.ativa !== false), [conc, catsConc, uf])
+  useEffect(() => {
+    const lyr = concLayer.current; if (!lyr) return
+    lyr.clearLayers()
+    if (!verConc) return
+    for (const c of concVisiveis) {
+      const k = catsConc.find((x) => x.chave === c.categoria)
+      L.circleMarker([c.lat, c.lng], { radius: 8, color: '#14213d', weight: 2, fillColor: k?.cor || '#64748b', fillOpacity: 1 })
+        .bindTooltip(`<b>${c.nome}</b><br>${k?.rotulo || c.categoria}${c.observacao ? '<br>' + c.observacao : ''}`, { className: 'tip', direction: 'top' })
+        .on('click', () => setFichaEstab(c.id)).addTo(lyr)
+    }
+  }, [concVisiveis, catsConc, verConc])
 
   // raio a partir do CEP
   useEffect(() => {
@@ -292,6 +323,7 @@ export default function MapaComercial() {
             <button type="button" className="chip" aria-pressed={cats.ativo} onClick={() => setCats((c) => ({ ...c, ativo: !c.ativo }))}><span className="dot" style={{ background: COR.ativo }} />Clientes ativos <small>{fmt(contagem.ativo)}</small></button>
             <button type="button" className="chip" aria-pressed={cats.inativo} disabled={!contagem.inativo} onClick={() => setCats((c) => ({ ...c, inativo: !c.inativo }))}><span className="dot" style={{ background: COR.inativo }} />Inativos <small>{fmt(contagem.inativo)}</small></button>
             <button type="button" className="chip" aria-pressed={cats.potencial} disabled={!contagem.potencial} onClick={() => setCats((c) => ({ ...c, potencial: !c.potencial }))}><span className="dot" style={{ background: COR.potencial }} />Potenciais clientes <small>{fmt(contagem.potencial)}</small></button>
+            {ehPago(org) && <button type="button" className="chip" aria-pressed={verConc} disabled={!conc.length} onClick={() => setVerConc((v) => !v)} title={conc.length ? undefined : 'Classifique estabelecimentos em Concorrência para vê-los aqui'}><span className="dot" style={{ background: '#14213d', boxShadow: '0 0 0 2px #fff inset' }} />Concorrência <small>{fmt(concVisiveis.length)}</small></button>}
           </div>
           <div style={{ display: 'grid', gap: 8 }}>
             <select id="m-uf" className="input" aria-label="Estado" value={uf} onChange={(e) => (e.target.value ? escolherUf(e.target.value) : limpar())}>
@@ -374,6 +406,7 @@ export default function MapaComercial() {
           <div className="row"><span className="dot" style={{ background: COR.ativo }} />Cliente ativo</div>
           <div className="row"><span className="dot" style={{ background: COR.inativo }} />Cliente inativo</div>
           <div className="row"><span className="dot" style={{ background: COR.potencial }} />Potencial cliente (base pública)</div>
+          {ehPago(org) && conc.length > 0 && <div className="row"><span className="dot" style={{ background: '#fff', border: '3px solid #14213d' }} />Concorrência e classificados (cor = categoria)</div>}
           <div className="row"><span className="dot" style={{ background: '#3AB6FF' }} />Seu CEP e o raio de busca</div>
           <div className="row" style={{ color: 'var(--faint)' }}>Número no círculo = clientes agrupados{zoom < 6 ? '. Aproxime para separar.' : ''}</div>
         </div>
