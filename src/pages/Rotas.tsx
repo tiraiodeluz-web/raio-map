@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useSessao } from '../context/Sessao'
 import { msgErro, supabase } from '../lib/supabase'
 import { dataHoraBR, fmt, km } from '../lib/format'
-import { ehPago } from '../lib/plano'
+import { ehPago, podeExportar } from '../lib/plano'
 import { distanciaTotal, linkGoogleMaps, otimizar } from '../lib/rota'
 import Bloqueado from '../components/Bloqueado'
 import MiniMapa, { type PontoMini } from '../components/MiniMapa'
@@ -145,7 +145,8 @@ function Tela() {
 }
 
 function RotaSalvaView({ r, aberta, onAbrir, onMudou, podeEditar, membros, uid }: { r: RotaSalva; aberta: boolean; onAbrir: () => void; onMudou: () => void; podeEditar: boolean; membros: Membro[]; uid?: string }) {
-  const { toast } = useSessao()
+  const { toast, org } = useSessao()
+  const liberado = podeExportar(org)
   const feitas = r.rota_paradas.filter((p) => p.visitado_em).length
   const dono = membros.find((m) => m.user_id === r.responsavel_id)
   const linkApp = `${location.origin}/rotas?rota=${r.id}`
@@ -159,6 +160,7 @@ function RotaSalvaView({ r, aberta, onAbrir, onMudou, podeEditar, membros, uid }
     return `Rota de visitas: ${r.nome}\n\n${paradas}\n\n${maps ? 'Trajeto no Google Maps: ' + maps + '\n' : ''}Marcar visitas no Clyvo Map: ${linkApp}`
   }
   async function compartilhar() {
+    if (!liberado) return
     const t = textoCompartilhar()
     try { if (navigator.share) { await navigator.share({ title: r.nome, text: t }); return } } catch { return }
     window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank', 'noreferrer')
@@ -180,8 +182,8 @@ function RotaSalvaView({ r, aberta, onAbrir, onMudou, podeEditar, membros, uid }
           <div className="filtros" style={{ alignItems: 'center' }}>
             <label className="field"><span>Representante responsável</span>
               <select className="input" value={r.responsavel_id || ''} disabled={!podeEditar} onChange={(e) => atribuir(e.target.value)}><option value="">Sem responsável</option>{membros.map((m) => <option key={m.user_id} value={m.user_id}>{m.email}{m.user_id === uid ? ' (eu)' : ''}</option>)}</select></label>
-            <button className="btn btn-primary" type="button" onClick={compartilhar}>Compartilhar</button>
-            <button className="btn" type="button" onClick={copiarLink}>Copiar link</button>
+            <button className="btn btn-primary" type="button" onClick={compartilhar} disabled={!liberado} title={liberado ? undefined : 'Compartilhar rota está disponível nos planos pagos'}>{liberado ? 'Compartilhar' : 'Compartilhar (plano pago)'}</button>
+            <button className="btn" type="button" onClick={copiarLink} disabled={!liberado} title={liberado ? undefined : 'Disponível nos planos pagos'}>Copiar link</button>
           </div>
           <div className="small muted">O representante precisa ter acesso à empresa (Configurações → Membros, papel Vendedor). Ele abre o link, entra e marca cada visita.</div>
           <div className="filtros">{linkGoogleMaps(r.rota_paradas) && <a className="btn" href={linkGoogleMaps(r.rota_paradas)!} target="_blank" rel="noreferrer">Abrir no Google Maps</a>}
