@@ -86,7 +86,7 @@ export default function Login() {
               <li>Funil de prospecção com histórico de abordagem</li>
               <li>Equipe com acessos separados por papel</li>
             </ul>
-            {OFERTA.custosCliente && <span className=\"small\" style={{ color: '#8597b8' }}>{OFERTA.custosCliente}</span>}
+            {OFERTA.custosCliente && <span className="small" style={{ color: '#8597b8' }}>{OFERTA.custosCliente}</span>}
           </div>
         </div>
         <span className="small" style={{ color: '#8597b8' }}>Cada empresa vê apenas os próprios dados.</span>
