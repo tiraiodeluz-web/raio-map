@@ -7,6 +7,7 @@ import { dataBR, fmt } from '../lib/format'
 import { UF_NOMES } from '../lib/geo'
 import FichaCliente from '../components/FichaCliente'
 import { baixarCsv } from '../lib/csv'
+import { podeExportar } from '../lib/plano'
 import { IcImportar } from '../components/Icones'
 
 const POR_PAGINA = 50
@@ -96,7 +97,7 @@ export default function Clientes() {
       <div className="page-head">
         <div><h1>Clientes</h1><p>Carteira da empresa, importada do ERP.</p></div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn" type="button" onClick={exportar} disabled={exportando || !total}>Exportar CSV</button>
+          <button className="btn" type="button" onClick={exportar} disabled={exportando || !total || !podeExportar(org)} title={podeExportar(org) ? undefined : 'Exportar planilha está disponível nos planos pagos'}>{podeExportar(org) ? 'Exportar CSV' : 'Exportar CSV (plano pago)'}</button>
           {podeEditar && <Link className="btn btn-primary" to="/clientes/importar"><IcImportar />Importar</Link>}
         </div>
       </div>

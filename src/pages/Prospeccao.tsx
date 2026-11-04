@@ -8,6 +8,7 @@ import { CONFIANCA_ROTULO, esquecer, lembrado, lembrar, SITUACOES, SITUACAO_ROTU
 import FichaEstabelecimento from '../components/FichaEstabelecimento'
 import FichaProspect from '../components/FichaProspect'
 import { baixarCsv } from '../lib/csv'
+import { podeExportar } from '../lib/plano'
 import { chamarBatePapo, seloTelefone, textoResultado } from '../lib/chat'
 
 const POR_PAGINA = 50
@@ -238,7 +239,7 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
       </div>
       <div className="filters">
         <label className="field grow" style={{ maxWidth: 420 }}><span>Buscar</span><input id="mp-q" className="input" type="search" placeholder="Nome ou cidade" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-        <button className="btn" type="button" onClick={exportar} disabled={exportando || !total}>{exportando ? 'Exportando…' : 'Exportar planilha'}</button>
+        <button className="btn" type="button" onClick={exportar} disabled={exportando || !total || !podeExportar(org)} title={podeExportar(org) ? undefined : 'Exportar planilha está disponível nos planos pagos'}>{exportando ? 'Exportando…' : podeExportar(org) ? 'Exportar planilha' : 'Exportar planilha (plano pago)'}</button>
         <label className="field"><span>Telefone</span>
           <select id="mp-tel" className="input" value={tel} onChange={(e) => setTel(e.target.value)}>
             <option value="">Todos</option><option value="celular">Celular (bom para WhatsApp)</option><option value="fixo">Fixo (para ligar)</option>

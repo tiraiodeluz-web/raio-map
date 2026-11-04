@@ -1,0 +1,3 @@
+-- Teste com recursos liberados (config.recursos_liberados = true): libera IA, concorrência, rotas e relatório e
+-- dispensa o limite de 30 clientes, mas NÃO libera exportação de planilha/PDF (só planos pagos).
+-- recurso_pago(), limitar_clientes_teste() e registrar_exportacao() foram atualizadas (ver banco).

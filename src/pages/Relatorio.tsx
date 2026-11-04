@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSessao } from '../context/Sessao'
 import { msgErro, supabase } from '../lib/supabase'
 import { dataBR, fmt } from '../lib/format'
-import { ehPago } from '../lib/plano'
+import { ehPago, podeExportar } from '../lib/plano'
 import Bloqueado from '../components/Bloqueado'
 
 interface Par { atual: number; anterior: number }
@@ -48,7 +48,7 @@ function Tela() {
         <div><h1>Relatório semanal</h1><p>Resumo da atividade comercial com comparação à semana anterior.</p></div>
         <div className="filtros">
           <label className="field"><span>Semana</span><select className="input" value={semana} onChange={(e) => setSemana(e.target.value)}>{opcoes.map((s) => <option key={s} value={s}>{dataBR(s)}{s === segundaAnterior() ? ' (última completa)' : ''}</option>)}</select></label>
-          <button className="btn btn-primary" type="button" onClick={() => window.print()} disabled={!d}>Salvar em PDF</button>
+          <button className="btn btn-primary" type="button" onClick={() => window.print()} disabled={!d || !podeExportar(org)} title={podeExportar(org) ? undefined : 'PDF disponível nos planos pagos'}>{podeExportar(org) ? 'Salvar em PDF' : 'Salvar em PDF (plano pago)'}</button>
         </div>
       </div>
       {erro && <div className="alert alert-err" role="alert">{erro}</div>}

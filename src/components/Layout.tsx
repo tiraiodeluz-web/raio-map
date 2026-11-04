@@ -1,3 +1,4 @@
+import { ehPago } from '../lib/plano'
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useSessao } from '../context/Sessao'
@@ -50,7 +51,7 @@ export default function Layout() {
         )}
         <nav className="nav">
           {ITENS.map(({ to, rotulo, Ic, end, pago }: { to: string; rotulo: string; Ic: typeof IcMapa; end?: boolean; pago?: boolean }) => (
-            <NavLink key={to} to={to} end={end}><Ic />{rotulo}{pago && org && org.plano_id === 'teste' && <small className="nav-pago">pago</small>}</NavLink>
+            <NavLink key={to} to={to} end={end}><Ic />{rotulo}{pago && org && !ehPago(org) && <small className="nav-pago">pago</small>}</NavLink>
           ))}
         </nav>
         <div className="sidebar-foot">
