@@ -61,7 +61,6 @@ const SECOES: Secao[] = [
       'Exportar CSV (planos pagos) baixa a lista do filtro atual.',
       'Integrar API e Integrar banco de dados (planos pagos) vão ligar o Clyvo Map direto ao seu sistema, sem precisar de planilha. Estão em desenvolvimento.',
     ],
-    dicas: ['No teste grátis, dá para importar até 30 clientes.'],
   },
   {
     id: 'prospeccao', titulo: 'Prospecção: base nacional', link: '/prospeccao',
@@ -220,17 +219,6 @@ const SECOES: Secao[] = [
     ],
     dicas: ['Use um número de WhatsApp oficial da empresa e respeite quem pedir para não receber mensagens.'],
   },
-  {
-    id: 'planos', titulo: 'Teste grátis e planos pagos',
-    resumo: 'O teste grátis dura 7 dias e mostra o Clyvo Map funcionando com os seus próprios dados. Os recursos marcados como pago ficam liberados na contratação.',
-    imagens: [{ src: '/ajuda/plano-pago.jpg', legenda: 'No teste grátis, os recursos pagos aparecem com a etiqueta pago no menu e, ao abrir, explicam o que fazem.' }],
-    passos: [
-      'No teste, importe até 30 clientes e use o mapa, a prospecção, o funil, os clientes inativos e o simulador.',
-      'Concorrência, Rotas de visita, Relatório semanal e Clyvo AI são dos planos pagos. No menu, eles têm a etiqueta pago.',
-      'Exportar planilhas, enviar e-mail, conectar o bate-papo, compartilhar rotas e integrar por API ou banco de dados também são dos planos pagos. No teste, esses botões aparecem com (plano pago).',
-      'Para contratar, clique em Conhecer os planos em qualquer tela bloqueada.',
-    ],
-  },
 ]
 
 export default function ComoUsar() {
@@ -253,6 +241,7 @@ export default function ComoUsar() {
           <a href="#primeiros">Primeiros passos</a>
           <a href="#implantacao">Como é a implantação</a>
           <a href="#suporte">Atendimento e suporte</a>
+          <a href="#lgpd">Privacidade e LGPD</a>
           {SECOES.map((s) => <a key={s.id} href={'#' + s.id}>{s.titulo}</a>)}
           <a href="#duvidas">Dúvidas comuns</a>
         </nav>
@@ -295,6 +284,32 @@ export default function ComoUsar() {
               <li><b>E-mail.</b> Escreva para <a className="link" href={'mailto:' + SUPORTE_EMAIL}>{SUPORTE_EMAIL}</a>.</li>
               <li><b>Para relatar um defeito,</b> diga em qual tela estava, o que esperava que acontecesse e o que aconteceu. Se puder, mande um print da tela.</li>
             </ul>
+          </section>
+
+          <section id="lgpd" className="panel panel-b ajuda-secao">
+            <h2>Privacidade e LGPD</h2>
+            <p className="ajuda-resumo">O Clyvo Map foi feito para tratar dados de clientes e prospects com cuidado, seguindo a Lei Geral de Proteção de Dados (Lei 13.709/2018).</p>
+            <h3>Como os seus dados são protegidos</h3>
+            <ul className="ajuda-lista">
+              <li><b>Cada empresa vê só os próprios dados.</b> Clientes, prospects, anotações e rotas ficam separados por empresa e nenhuma outra empresa tem acesso a eles.</li>
+              <li><b>Acesso por papel.</b> Dono e admin decidem quem entra e o que cada pessoa pode fazer (vendedor ou leitor). Quem sai da equipe pode ser removido na hora.</li>
+              <li><b>Registro de atividades.</b> Dono e admin veem em Configurações &gt; Atividades o que foi feito na empresa.</li>
+              <li><b>Conexão segura.</b> O acesso ao sistema é feito por conexão criptografada (HTTPS) e com login individual.</li>
+              <li><b>Exportações controladas.</b> Baixar planilhas fica registrado e segue o limite do plano.</li>
+            </ul>
+            <h3>De onde vêm os dados</h3>
+            <ul className="ajuda-lista">
+              <li><b>Seus clientes</b> são os que a sua empresa importa. A sua empresa é a controladora desses dados e o Clyvo Map os trata em seu nome, só para as funções do sistema.</li>
+              <li><b>A base nacional</b> vem dos dados públicos de CNPJ da Receita Federal: informações de empresas, como razão social, endereço e telefone informados à Receita.</li>
+              <li><b>A Clyvo AI</b> responde com dados resumidos da sua empresa e não usa esses dados para outras empresas.</li>
+            </ul>
+            <h3>Boas práticas na abordagem</h3>
+            <ul className="ajuda-lista">
+              <li>Aborde empresas com um assunto ligado ao negócio delas e diga quem você é.</li>
+              <li>Respeite quem pedir para não receber mensagens. No bate-papo, quem diz que não tem interesse para de receber automaticamente.</li>
+              <li>Mantenha os dados atualizados e apague o que não for mais necessário.</li>
+            </ul>
+            <div className="obs"><p>Para pedir acesso, correção ou exclusão de dados, ou para tirar dúvidas sobre privacidade, escreva para <a className="link" href={'mailto:' + SUPORTE_EMAIL}>{SUPORTE_EMAIL}</a>.</p></div>
           </section>
 
           {SECOES.map((s) => (
