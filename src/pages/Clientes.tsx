@@ -98,7 +98,13 @@ export default function Clientes() {
         <div><h1>Clientes</h1><p>Carteira da empresa, importada do ERP.</p></div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn" type="button" onClick={exportar} disabled={exportando || !total || !podeExportar(org)} title={podeExportar(org) ? undefined : 'Exportar planilha está disponível nos planos pagos'}>{podeExportar(org) ? 'Exportar CSV' : 'Exportar CSV (plano pago)'}</button>
-          {podeEditar && <Link className="btn btn-primary" to="/clientes/importar"><IcImportar />Importar</Link>}
+          {podeEditar && (['Integrar API', 'Integrar banco de dados'] as const).map((r) => (
+            <button key={r} className="btn" type="button" disabled={!podeExportar(org)} title={podeExportar(org) ? undefined : 'Disponível nos planos pagos'}
+              onClick={() => toast(`${r}: em breve. Avise o suporte do Clyvo Map para ser o primeiro a usar.`)}>
+              {podeExportar(org) ? r : `${r} (plano pago)`}
+            </button>
+          ))}
+          {podeEditar && <Link className="btn btn-primary" to="/clientes/importar"><IcImportar />Importar CSV</Link>}
         </div>
       </div>
 

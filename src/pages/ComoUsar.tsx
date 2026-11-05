@@ -52,7 +52,7 @@ const SECOES: Secao[] = [
       'Busque por nome, nome fantasia, contato, código ou CNPJ.',
       'Filtre por estado, município e situação (ativo ou inativo).',
       'Exportar CSV baixa a lista do filtro atual.',
-      'Para importar, clique em Importar, escolha o arquivo CSV e confira a correspondência das colunas. Nome, cidade e UF são obrigatórios.',
+      'Para importar, clique em Importar CSV, escolha o arquivo CSV e confira a correspondência das colunas. Nome, cidade e UF são obrigatórios.',
       'Clientes com o mesmo código do seu sistema são atualizados, não duplicados. Pode importar de novo sempre que quiser.',
     ],
   },
