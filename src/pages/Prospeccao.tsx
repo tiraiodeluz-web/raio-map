@@ -242,18 +242,21 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
       </div>
       <div className="filters">
         <label className="field grow" style={{ maxWidth: 420 }}><span>Buscar</span><input id="mp-q" className="input" type="search" placeholder="Nome ou cidade" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-        <button className="btn" type="button" onClick={exportar} disabled={exportando || !total || !podeExportar(org)} title={podeExportar(org) ? undefined : 'Exportar planilha está disponível nos planos pagos'}>{exportando ? 'Exportando…' : podeExportar(org) ? 'Exportar planilha' : 'Exportar planilha (plano pago)'}</button>
         <label className="field"><span>Telefone</span>
           <select id="mp-tel" className="input" value={tel} onChange={(e) => setTel(e.target.value)}>
             <option value="">Todos</option><option value="celular">Celular (bom para WhatsApp)</option><option value="fixo">Fixo (para ligar)</option>
             <option value="whatsapp_ok">WhatsApp confirmado</option><option value="sem_whatsapp">Sem WhatsApp</option><option value="sem_telefone">Sem telefone</option>
           </select>
         </label>
-        {podeEditar && <label className="small" style={{ display: 'flex', gap: 6, alignItems: 'center', paddingBottom: 10 }}><input type="checkbox" checked={incluirFixos} onChange={(e) => setIncluirFixos(e.target.checked)} />Enviar fixos também</label>}
-        {podeEditar && <button className="btn" type="button" disabled={!pago} title={pago ? undefined : 'Enviar e-mail está disponível nos planos pagos'} onClick={() => setEmailAberto(true)}>{pago ? `Enviar e-mail${escolhidos.size ? ` (${escolhidos.size})` : ''}` : 'Enviar e-mail (plano pago)'}</button>}
-        {podeEditar && <button className="btn btn-primary" type="button" onClick={conectarBatePapo} disabled={enviando || !pago} title={pago ? undefined : 'Conectar bate-papo está disponível nos planos pagos'}>{enviando ? 'Enviando…' : pago ? `Conectar bate-papo${escolhidos.size ? ` (${escolhidos.size})` : ''}` : 'Conectar bate-papo (plano pago)'}</button>}
-        <span className="small muted" style={{ paddingBottom: 10 }}>Exportar planilha usa o filtro atual. Conectar bate-papo envia os marcados ao WhatsApp e Enviar e-mail escreve a mensagem para todos os marcados.</span>
       </div>
+      <div className="acoes-lista">
+        <span className="small muted">{escolhidos.size ? `${fmt(escolhidos.size)} marcado${escolhidos.size > 1 ? 's' : ''}` : 'Marque os prospects na lista para enviar'}</span>
+        <button className="btn" type="button" onClick={exportar} disabled={exportando || !total || !podeExportar(org)} title={podeExportar(org) ? undefined : 'Exportar planilha está disponível nos planos pagos'}>{exportando ? 'Exportando…' : podeExportar(org) ? 'Exportar planilha' : 'Exportar planilha (plano pago)'}</button>
+        {podeEditar && <button className="btn" type="button" disabled={!pago} title={pago ? undefined : 'Enviar e-mail está disponível nos planos pagos'} onClick={() => setEmailAberto(true)}>{pago ? `Enviar e-mail${escolhidos.size ? ` (${escolhidos.size})` : ''}` : 'Enviar e-mail (plano pago)'}</button>}
+        {podeEditar && <label className="small" style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={incluirFixos} onChange={(e) => setIncluirFixos(e.target.checked)} />Enviar fixos também</label>}
+        {podeEditar && <button className="btn btn-primary" type="button" onClick={conectarBatePapo} disabled={enviando || !pago} title={pago ? undefined : 'Conectar bate-papo está disponível nos planos pagos'}>{enviando ? 'Enviando…' : pago ? `Conectar bate-papo${escolhidos.size ? ` (${escolhidos.size})` : ''}` : 'Conectar bate-papo (plano pago)'}</button>}
+      </div>
+      <p className="small muted" style={{ margin: '-8px 0 0' }}>Exportar planilha usa o filtro atual. Enviar e-mail escreve uma mensagem para todos os marcados. Conectar bate-papo envia os marcados ao WhatsApp.</p>
       {emailAberto && <EmailEmMassa ids={[...escolhidos]} vistos={vistos.current} onClose={() => setEmailAberto(false)} />}
       <section className="panel">
         <div className="table-wrap">

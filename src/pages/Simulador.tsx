@@ -63,7 +63,7 @@ export default function Simulador() {
             {cenarios.map((c) => (
               <div key={c.chave} className="sim-card" style={{ borderTopColor: c.cor }}>
                 <span className="small muted">{c.nome}</span>
-                <b>{brl(c.mensal)}<small> /mês</small></b>
+                <b>{brl(c.mensal)} <small>/mês</small></b>
                 <span>{brl(c.anual)} <span className="small muted">/ano</span></span>
                 <span className="small muted">{fmt(c.clientes)} clientes ({Math.round(c.f * 100)}% da meta)</span>
                 {c.lucro != null && <span className="small">Margem estimada: <b>{brl(c.lucro)}</b>/ano</span>}

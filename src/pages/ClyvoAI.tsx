@@ -4,6 +4,7 @@ import { msgErro, supabase } from '../lib/supabase'
 import { dataHoraBR, fmt } from '../lib/format'
 import { ehPago } from '../lib/plano'
 import Bloqueado from '../components/Bloqueado'
+import { SUPORTE_EMAIL } from '../lib/oferta'
 
 interface Item { id: string; pergunta: string; resposta: string | null; erro: string | null; criado_em: string }
 const SUGESTOES = [
@@ -13,6 +14,8 @@ const SUGESTOES = [
   'Onde estamos perdendo oportunidades?',
   'Como está o desempenho da equipe?',
   'Quais regiões têm maior potencial comercial?',
+  'Como monto uma rota para o meu vendedor?',
+  'Como importo a planilha de clientes?',
 ]
 
 export default function ClyvoAI() {
@@ -61,7 +64,7 @@ function Conversa() {
   return (
     <div className="page ia-page">
       <div className="page-head">
-        <div><h1>Clyvo AI</h1><p>Pergunte sobre clientes, prospects e equipe. Responde só com os dados da sua empresa.</p></div>
+        <div><h1>Clyvo AI</h1><p>Pergunte sobre clientes, prospects e equipe, ou tire dúvidas de como usar o Clyvo Map. Atendimento 24 horas.</p></div>
         <span className="pill pill-nid" title="Cada pergunta usa 1 crédito">{saldo == null ? '50 créditos iniciais' : `${fmt(saldo)} ${saldo === 1 ? 'crédito' : 'créditos'}`}</span>
       </div>
       <div className="panel ia-chat">
@@ -85,7 +88,7 @@ function Conversa() {
           <input className="input" value={texto} maxLength={600} onChange={(e) => setTexto(e.target.value)} placeholder="Ex.: quais clientes devo ligar esta semana?" aria-label="Sua pergunta" disabled={enviando} />
           <button className="btn btn-primary" type="submit" disabled={enviando || !texto.trim()}>Perguntar</button>
         </form>
-        <div className="small muted" style={{ padding: '0 16px 14px' }}>A IA pode errar. Confira os números nas telas antes de decidir. Ela não vê faturamento nem a base nacional completa.</div>
+        <div className="small muted" style={{ padding: '0 16px 14px' }}>A IA pode errar. Confira os números nas telas antes de decidir. Ela não vê faturamento nem a base nacional completa. Algo não funcionou como deveria? Conte aqui o que aconteceu ou escreva para <a className="link" href={'mailto:' + SUPORTE_EMAIL}>{SUPORTE_EMAIL}</a>.</div>
       </div>
     </div>
   )

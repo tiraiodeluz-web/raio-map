@@ -396,8 +396,8 @@ table.t { width: 100%; border-collapse: collapse; }
 .sim-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 @media (max-width: 700px) { .sim-cards { grid-template-columns: 1fr; } }
 .sim-card { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid; border-radius: var(--r-md); padding: 14px; display: grid; gap: 3px; }
-.sim-card b { font: 700 20px/1.2 var(--f-display); white-space: nowrap; }
-.sim-card b small { font: 400 13px var(--f-body, inherit); color: var(--muted); }
+.sim-card b { font: 700 20px/1.2 var(--f-display); }
+.sim-card b small { font: 400 13px var(--f-body, inherit); color: var(--muted); white-space: nowrap; }
 .sim-barra { display: grid; grid-template-columns: 110px 1fr auto; gap: 10px; align-items: center; }
 .sim-barra > div { background: #eef0f4; border-radius: 4px; height: 14px; overflow: hidden; }
 .sim-barra i { display: block; height: 100%; border-radius: 4px; }
@@ -419,3 +419,6 @@ table.t { width: 100%; border-collapse: collapse; }
 
 .modal-fundo { position: fixed; inset: 0; background: rgba(10, 18, 36, .5); display: grid; place-items: center; padding: 16px; z-index: 50; }
 .modal { background: var(--surface); border-radius: var(--r-md); width: min(640px, 100%); max-height: 90vh; overflow: auto; }
+
+.acoes-lista { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.acoes-lista > .small.muted:first-child { margin-right: auto; }

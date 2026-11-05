@@ -17,3 +17,6 @@ export function diasDeTeste(org: { plano_id: string; teste_ate: string | null } 
   if (!org || org.plano_id !== 'teste' || !org.teste_ate) return null
   return Math.max(0, Math.ceil((new Date(org.teste_ate).getTime() - Date.now()) / 86400000))
 }
+
+/** Atendimento: Clyvo AI (24 horas, dentro do sistema) e e-mail. */
+export const SUPORTE_EMAIL = 'suporte@clyvotecnologia.online'
