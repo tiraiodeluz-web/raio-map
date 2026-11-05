@@ -221,6 +221,7 @@ export default function ComoUsar() {
       <div className="ajuda-grid">
         <nav className="ajuda-indice" aria-label="Seções">
           <a href="#primeiros">Primeiros passos</a>
+          <a href="#implantacao">Como é a implantação</a>
           {SECOES.map((s) => <a key={s.id} href={'#' + s.id}>{s.titulo}</a>)}
           <a href="#duvidas">Dúvidas comuns</a>
         </nav>
@@ -231,6 +232,28 @@ export default function ComoUsar() {
             <ol className="ajuda-passos-iniciais">
               {PRIMEIROS.map(([t, d]) => <li key={t}><b>{t}</b><span>{d}</span></li>)}
             </ol>
+          </section>
+
+          <section id="implantacao" className="panel panel-b ajuda-secao">
+            <h2>Como é a implantação</h2>
+            <p className="ajuda-resumo">A implantação é o trabalho da nossa equipe para deixar o Clyvo Map pronto e ajustado ao ramo da sua empresa. Você não começa com uma ferramenta genérica: ela já chega configurada para o seu mercado.</p>
+            <h3>O que a equipe faz</h3>
+            <ul className="ajuda-lista">
+              <li><b>Entende o seu nicho.</b> Conversamos para saber o que você vende, para quem vende e em que região atua.</li>
+              <li><b>Filtra os possíveis clientes.</b> Selecionamos, entre as empresas abertas na sua região, só as que combinam com o seu ramo, para a lista ser a mais fiel possível ao seu público.</li>
+              <li><b>Traz possíveis concorrentes e fornecedores.</b> Mapeamos quem vende o mesmo que você e quem pode abastecer o seu negócio, para você enxergar o mercado inteiro no mapa.</li>
+              <li><b>Ajusta o sistema ao seu ramo.</b> Categorias da concorrência, funil de vendas, termos e filtros seguem a realidade da sua empresa.</li>
+              <li><b>Organiza a sua carteira.</b> Importamos sua lista de clientes e conferimos telefones, endereços e datas de compra.</li>
+              <li><b>Prepara a equipe.</b> Criamos os acessos e as permissões de cada pessoa e mostramos como usar no dia a dia.</li>
+            </ul>
+            <h3>Como acontece</h3>
+            <ol className="ajuda-passos-iniciais">
+              <li><b>Conversa inicial</b><span>Você nos conta sobre o seu negócio e a sua região de atuação.</span></li>
+              <li><b>Configuração</b><span>A equipe monta a conta e filtra o seu nicho, com clientes, concorrentes e fornecedores.</span></li>
+              <li><b>Entrega e treinamento</b><span>Você recebe o sistema pronto e a sua equipe aprende a usar.</span></li>
+              <li><b>Acompanhamento</b><span>Seguimos disponíveis para ajustar filtros e tirar dúvidas.</span></li>
+            </ol>
+            <div className="obs"><p>Depois de pronto, os ajustes de nicho (novas categorias, outras cidades) podem ser pedidos à equipe a qualquer momento.</p></div>
           </section>
 
           {SECOES.map((s) => (
