@@ -416,3 +416,6 @@ table.t { width: 100%; border-collapse: collapse; }
 .rota-lista li { counter-increment: parada; }
 .rota-lista li::before { content: counter(parada); flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--cat-ativo); color: #fff; font: 700 12px/24px var(--f-display); text-align: center; }
 .rota-lista li > span:first-child { flex: 1; }
+
+.modal-fundo { position: fixed; inset: 0; background: rgba(10, 18, 36, .5); display: grid; place-items: center; padding: 16px; z-index: 50; }
+.modal { background: var(--surface); border-radius: var(--r-md); width: min(640px, 100%); max-height: 90vh; overflow: auto; }

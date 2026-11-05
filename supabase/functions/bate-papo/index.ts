@@ -38,9 +38,10 @@ Deno.serve(async (req) => {
   const { data: pode } = await usuario.rpc(acao === 'testar' ? 'eh_admin_org' : 'pode_editar', { o: org_id })
   if (!pode) return json({ erro: acao === 'testar' ? 'Só dono ou admin testa a conexão.' : 'Seu acesso é somente leitura.' }, 403)
 
+  const { data: org } = await admin.from('organizacoes').select('id, nome, plano_id').eq('id', org_id).single()
+  if (!org || org.plano_id === 'teste') return json({ erro: 'O bate-papo (WhatsApp) está disponível nos planos pagos.', codigo: 'plano' }, 403)
   const { data: integ } = await admin.from('integracoes').select('webhook_url, segredo').eq('org_id', org_id).eq('tipo', 'bate_papo').maybeSingle()
   if (!integ) return json({ erro: 'O bate-papo ainda não foi conectado. Peça a um admin para configurar em Configurações > Bate-papo.' }, 409)
-  const { data: org } = await admin.from('organizacoes').select('id, nome').eq('id', org_id).single()
 
   let contatos: Record<string, unknown>[] = []
   let ids: string[] = []

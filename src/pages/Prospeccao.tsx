@@ -141,7 +141,7 @@ function BaseNacional({ abrir }: { abrir: (id: number) => void }) {
   )
 }
 
-interface LinhaProspect { id: string; nome: string; cidade: string | null; uf: string | null; situacao: Situacao; telefone: string | null; categoria: string | null; nota: number | null; atualizado_em: string; fonte: string; chat_enviado_em: string | null; tipo_telefone: string | null; whatsapp_status: string | null; chat_bloqueado: boolean }
+interface LinhaProspect { id: string; email?: string | null; nome: string; cidade: string | null; uf: string | null; situacao: Situacao; telefone: string | null; categoria: string | null; nota: number | null; atualizado_em: string; fonte: string; chat_enviado_em: string | null; tipo_telefone: string | null; whatsapp_status: string | null; chat_bloqueado: boolean }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function filtroTel(qb: any, tel: string) {
@@ -167,6 +167,9 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
   const [sit, setSit] = useState('')
   const [q, setQ] = useState('')
   const [linhas, setLinhas] = useState<LinhaProspect[] | null>(null)
+  const vistos = useRef(new Map<string, { nome: string; email: string | null }>())
+  const [emailAberto, setEmailAberto] = useState(false)
+  const pago = podeExportar(org)
   const [contagem, setContagem] = useState<Record<string, number>>({})
   const [total, setTotal] = useState(0)
   const [pag, setPag] = useState(0)
@@ -182,12 +185,12 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
   }, [org, versao])
   useEffect(() => {
     if (!org) return
-    let qb = supabase.from('prospects').select('id,nome,cidade,uf,situacao,telefone,categoria,nota,atualizado_em,fonte,chat_enviado_em,tipo_telefone,whatsapp_status,chat_bloqueado', { count: 'exact' }).eq('org_id', org.id)
+    let qb = supabase.from('prospects').select('id,email,nome,cidade,uf,situacao,telefone,categoria,nota,atualizado_em,fonte,chat_enviado_em,tipo_telefone,whatsapp_status,chat_bloqueado', { count: 'exact' }).eq('org_id', org.id)
     if (sit) qb = qb.eq('situacao', sit)
     qb = filtroTel(qb, tel)
     const t = q.trim().replace(/[,()%]/g, ' ').trim()
     if (t) qb = qb.or(`nome.ilike.%${t}%,cidade.ilike.%${t}%`)
-    qb.order('atualizado_em', { ascending: false }).range(pag * POR_PAGINA, pag * POR_PAGINA + POR_PAGINA - 1).then(({ data, count }) => { setLinhas((data as LinhaProspect[]) || []); setTotal(count || 0) })
+    qb.order('atualizado_em', { ascending: false }).range(pag * POR_PAGINA, pag * POR_PAGINA + POR_PAGINA - 1).then(({ data, count }) => { (data as LinhaProspect[] | null)?.forEach((l) => vistos.current.set(l.id, { nome: l.nome, email: l.email || null })); setLinhas((data as LinhaProspect[]) || []); setTotal(count || 0) })
   }, [org, sit, q, pag, versao, recarga, tel])
 
   async function conectarBatePapo() {
@@ -247,9 +250,11 @@ function MeusProspects({ abrir, versao }: { abrir: (id: string) => void; versao:
           </select>
         </label>
         {podeEditar && <label className="small" style={{ display: 'flex', gap: 6, alignItems: 'center', paddingBottom: 10 }}><input type="checkbox" checked={incluirFixos} onChange={(e) => setIncluirFixos(e.target.checked)} />Enviar fixos também</label>}
-        {podeEditar && <button className="btn btn-primary" type="button" onClick={conectarBatePapo} disabled={enviando}>{enviando ? 'Enviando…' : `Conectar bate-papo${escolhidos.size ? ` (${escolhidos.size})` : ''}`}</button>}
-        <span className="small muted" style={{ paddingBottom: 10 }}>Exportar planilha usa o filtro atual. Conectar bate-papo envia os prospects marcados ao WhatsApp.</span>
+        {podeEditar && <button className="btn" type="button" disabled={!pago} title={pago ? undefined : 'Enviar e-mail está disponível nos planos pagos'} onClick={() => setEmailAberto(true)}>{pago ? `Enviar e-mail${escolhidos.size ? ` (${escolhidos.size})` : ''}` : 'Enviar e-mail (plano pago)'}</button>}
+        {podeEditar && <button className="btn btn-primary" type="button" onClick={conectarBatePapo} disabled={enviando || !pago} title={pago ? undefined : 'Conectar bate-papo está disponível nos planos pagos'}>{enviando ? 'Enviando…' : pago ? `Conectar bate-papo${escolhidos.size ? ` (${escolhidos.size})` : ''}` : 'Conectar bate-papo (plano pago)'}</button>}
+        <span className="small muted" style={{ paddingBottom: 10 }}>Exportar planilha usa o filtro atual. Conectar bate-papo envia os marcados ao WhatsApp e Enviar e-mail escreve a mensagem para todos os marcados.</span>
       </div>
+      {emailAberto && <EmailEmMassa ids={[...escolhidos]} vistos={vistos.current} onClose={() => setEmailAberto(false)} />}
       <section className="panel">
         <div className="table-wrap">
           <table className="t">
@@ -301,6 +306,43 @@ export default function Prospeccao() {
       {aba === 'base' ? <BaseNacional abrir={setEstab} /> : <MeusProspects abrir={setProspect} versao={versao} />}
       {estab !== null && <FichaEstabelecimento id={estab} onClose={() => setEstab(null)} onProspect={() => { esquecer('busca:'); esquecer('potenciais:'); setVersao((v) => v + 1) }} />}
       {prospect && <FichaProspect id={prospect} onClose={() => setProspect(null)} onChange={() => setVersao((v) => v + 1)} />}
+    </div>
+  )
+}
+
+const EMAIL_OK = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+
+/** Escrever um e-mail e enviar para todos os marcados. O envio ainda não está ligado: a tela já mostra quem não receberia e por quê. */
+function EmailEmMassa({ ids, vistos, onClose }: { ids: string[]; vistos: Map<string, { nome: string; email: string | null }>; onClose: () => void }) {
+  const [assunto, setAssunto] = useState('')
+  const [texto, setTexto] = useState('')
+  const [resultado, setResultado] = useState<{ fora: { nome: string; motivo: string }[]; ok: number } | null>(null)
+  useEffect(() => { const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', esc); return () => window.removeEventListener('keydown', esc) }, [onClose])
+  const itens = ids.map((id) => ({ id, ...(vistos.get(id) || { nome: 'Prospect', email: null }) }))
+  const fora = itens.filter((i) => !i.email || !EMAIL_OK.test(i.email)).map((i) => ({ nome: i.nome, motivo: i.email ? 'e-mail inválido' : 'sem e-mail cadastrado' }))
+  const validos = itens.length - fora.length
+  function enviar() { setResultado({ fora, ok: 0 }) }
+  return (
+    <div className="modal-fundo" role="dialog" aria-modal="true" aria-label="Enviar e-mail" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="panel-h"><h2>Enviar e-mail</h2><button className="btn" type="button" onClick={onClose}>Fechar</button></div>
+        <div style={{ padding: 16, display: 'grid', gap: 12 }}>
+          {!itens.length ? <div className="alert alert-warn">Marque pelo menos um prospect na lista para enviar o e-mail.</div> : (
+            <div className="small muted">{itens.length} marcado{itens.length > 1 ? 's' : ''}: {validos} com e-mail válido{fora.length ? ` e ${fora.length} que não receberia${fora.length > 1 ? 'm' : ''}` : ''}.</div>
+          )}
+          <label className="field"><span>Assunto</span><input className="input" value={assunto} maxLength={150} onChange={(e) => setAssunto(e.target.value)} /></label>
+          <label className="field"><span>Mensagem</span><textarea className="input" rows={7} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escreva o e-mail que será enviado a todos os marcados." /></label>
+          {resultado && (
+            <div className="alert alert-info" role="status">
+              O envio de e-mail ainda está em desenvolvimento: nada foi enviado.
+              {resultado.fora.length > 0 && <> Estes não seriam enviados:
+                <ul style={{ margin: '6px 0 0 18px' }}>{resultado.fora.slice(0, 50).map((f, i) => <li key={i}>{f.nome}: {f.motivo}</li>)}</ul>
+                {resultado.fora.length > 50 && <div>e mais {resultado.fora.length - 50}.</div>}</>}
+            </div>
+          )}
+          <div><button className="btn btn-primary" type="button" disabled={!itens.length || !assunto.trim() || !texto.trim()} onClick={enviar}>Enviar e-mail para {validos} {validos === 1 ? 'prospect' : 'prospects'}</button></div>
+        </div>
+      </div>
     </div>
   )
 }
